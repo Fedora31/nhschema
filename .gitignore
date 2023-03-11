@@ -1,0 +1,10 @@
+
+#executables
+nhcdbu*
+
+#vim swap files
+*.swp
+
+#tf2 items file
+items_game.txt
+
