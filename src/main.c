@@ -17,7 +17,7 @@ main(int argc, char **argv)
 		return 1;
 	}
 	if(parse(in) < 0){
-		fprintf(stderr, "err: could not parse standard input\n");
+		fprintf(stderr, "err: parser failed\n");
 		return 1;
 	}
 
