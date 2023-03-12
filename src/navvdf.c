@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <stack.h>
 #include "navvdf.h"
 
 
@@ -14,116 +13,102 @@
 /*Go to the different NAVDIRS specified in path.
  */
 int
-navto(char *start, char **p, const char *path)
+navto(Pos *p, const char *path)
 {
 	char tmp[BUFSIZE] = {0};
 	char *label;
 
 	/*if absolute path, set p to start (root)*/
 	if(path[0] == '/')
-		(*p) = start;
+		p->p = p->start;
 
 	strncpy(tmp, path, BUFSIZE-1);
-	label = strtok(tmp, "/");
 
-	do
-		if(navopen(start, p, label) < 0)
+	for(label = strtok(tmp, "/"); label != NULL; label = strtok(NULL, "/"))
+		if(navopen(p, label) < 0)
 			return -1;
-	while((label = strtok(NULL, "/")) != NULL);
 
 	return 0;
 }
 
 /*Go to the child NAVDIR with the given name.
+ *TODO: make it use navnextentry instead?
  */
 int
-navopen(char *start, char **p, const char *label)
+navopen(Pos *p, const char *label)
 {
-	char *match;
+	Entry e;
+	char *lp = p->p;
 
-	while(1){
-		if(navnext(p) < 0)
-			return -1;
-
-		/*get the current label*/
-		if((match = navgetname(start, *p)) == NULL)
-			return -1;
-
-		if(strcmp(match, label) == 0){
-			/*printf("OK!\n");*/
-			free(match);
+	while(navnextentry(&lp, &e) == 0)
+		if(strcmp(e.name, label) == 0 && e.type == NAVDIR){
+			p->p = e.link;
 			return 0;
 		}
-
-		/*not a match*/
-
-		free(match);
-		if(navjump(p) < 0)
-			return -1;
-	}
 	return -1;
 }
 
 /*Get the name of the current NAVDIR. The returned
  *char * must be freed after use.
  */
-char *
-navgetname(char *start, char *p)
+int
+navgetwd(const Pos *p, Entry *e)
 {
 	/*TODO: this should not rely on double quotes to be present*/
 
 	int dq = 0, len;
-	char *name;
+	char *lp = p->p;
 
-	while(dq < 2 && p > start){
-		p--;
-		if(p[0] == '"')
+	while(dq < 2 && lp > p->start){
+		lp--;
+		if(lp[0] == '"')
 			dq++;
 	}
 	if(dq != 2){
-		fprintf(stderr, "navgetname: err: double quotes missing\n");
-		return NULL;
+		fprintf(stderr, "navgetwd: err: double quotes missing\n");
+		return -1;
 	}
 
 	/*advance 1 due to the first double quote*/
-	p++;
+	lp++;
 
-	len = strchr(p, '"') - p;
-	name = malloc(sizeof(char) * (len+1));
-	strncpy(name, p, len);
-	name[len] = '\0';
+	len = strchr(lp, '"') - lp;
+	strncpy(e->name, lp, len);
+	e->name[len] = '\0';
+	e->type = NAVDIR;
+	e->link = p->p;
 
-	return name;
+	return 0;
 }
 
 /*Get into the next NAVDIR.
  */
 int
-navnext(char **p)
+navnext(Pos *p)
 {
 	int level;
 
 	/*get the next '{' on the same level, if any*/
-	for(level = 0; ((*p)[0] != '{' || level >= 1) && (*p)[0] != '\0'; (*p)++){
-		if((*p)[0] == '{')
+	for(level = 0; (p->p[0] != '{' || level >= 1) && p->p[0] != '\0'; p->p++){
+		if(p->p[0] == '{')
 			level++;
-		if((*p)[0] == '}')
+		if(p->p[0] == '}')
 			level--;
-		/*printf("  level %d %c\n", level, (*p)[0]);*/
+		/*printf("  level %d %c\n", level, p->p[0]);*/
 	}
 
 	if(level < 0){
 		fprintf(stderr, "err: arrived at end of block\n");
 		return -1;
 	}
-	if((*p)[0] == '\0'){
+	if(p->p[0] == '\0'){
 		/*the file likely has a missing closing brace*/
 		fprintf(stderr, "navnext(): err: abruptly arrived at EOF\n");
 		return -1;
 	}
 
 	/*go past the '{'*/
-	(*p)++;
+	p->p++;
 
 	return 0;
 }
@@ -159,52 +144,36 @@ navjump(char **p)
  *in the parent NAVDIR.
  */
 int
-navreturn(char *start, char **p)
+navreturn(Pos *p)
 {
 	int level;
 
 	/*get to the start of the current level*/
-	for(level = 0; ((*p)[0] != '{' || level >= 0) && *p > start; (*p)--){
-		if((*p)[0] == '{')
+	for(level = 0; (p->p[0] != '{' || level >= 0) && p->p > p->start; p->p--){
+		if(p->p[0] == '{')
 			level--;
-		if((*p)[0] == '}')
+		if(p->p[0] == '}')
 			level++;
-		/*printf("w level %d %c\n", level, (*p)[0]);*/
+		/*printf("w level %d %c\n", level, p->p[0]);*/
 	}
 
-	if(*p <= start){
+	if(p->p <= p->start){
 		fprintf(stderr, "navreturn(): err: arrived at SOF\n");
-		*p = start;
+		p->p = p->start;
 	}
 
 	/*get past the opening brace*/
-	(*p)++;
-
-	return 0;
-}
-
-/*Fill the given stack with the entries from the current NAVDIR.
- */
-int
-navscan(char *p, Stack *res)
-{
-	int i;
-	Entry *entry;
-
-	entry = stack_getslot(res, &i);
-	while(navnextentry(&p, entry) == 0){
-		stack_setused(res, i);
-		entry = stack_getslot(res, &i);
-	}
+	p->p++;
 
 	return 0;
 }
 
 int
-naventry(Entry *entry, const char *label, char *p)
+naventry(const Pos *p, const char *name, Entry *entry)
 {
-	while(navnextentry(&p, entry) == 0){
-		if(strcmp(entry->name, label) == 0)
+	char *lp = p->p;
+	while(navnextentry(&lp, entry) == 0){
+		if(strcmp(entry->name, name) == 0)
 			return 0;
 	}
 	return -1;
@@ -217,7 +186,7 @@ navnextentry(char **p, Entry *entry)
 {
 	/*TODO: this should not rely on double quotes to be present*/
 
-	char *name, *val;
+	char *name, *val, *save = *p;
 	int dq = 0, new = 1, len;
 
 	memset(entry, 0, sizeof(Entry));
@@ -226,7 +195,7 @@ navnextentry(char **p, Entry *entry)
 	 *encountering an opening brace means the entry is a NAVDIR.
 	 */
 
-	for(; (*p)[0] != '}'; (*p)++){
+	for(; (*p)[0] != '}' && (*p)[0] != '\0'; (*p)++){
 
 		if((*p)[0] == '"'){
 			dq++;
@@ -250,21 +219,28 @@ navnextentry(char **p, Entry *entry)
 		}
 
 		if(dq == 4){
+			/*NAVFILE*/
 			/*get over the last quote for any future calls*/
 			(*p)++;
 			len = strchr(val, '"') - val;
 			strncpy(entry->val, val, len < BUFSIZE-1 ? len : BUFSIZE-1);
 			entry->type = NAVFILE;
+			entry->link = save;
 			return 0;
 		}
 
 		if((*p)[0] == '{'){
-			/*get over the opening brace to call navjump()*/
+			/*NAVDIR*/
+			/*get over the opening brace to set the link and call navjump()*/
 			(*p)++;
-			navjump(p);
+			entry->link = *p;
 			entry->type = NAVDIR;
+			navjump(p);
 			return 0;
 		}
 	}
+
+	/*to go behind the closing brace or '\0' again*/
+	(*p)--;
 	return -1;
 }

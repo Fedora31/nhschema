@@ -1,6 +1,3 @@
-/*
- * requires: stack.h
- */
 
 #define BUFSIZE 512
 
@@ -13,6 +10,7 @@ typedef struct Entry{
 	enum NAVTYPE type;
 	char name[BUFSIZE];
 	char val[BUFSIZE];
+	char *link;
 }Entry;
 
 typedef struct Pos{
@@ -20,12 +18,12 @@ typedef struct Pos{
 	char *p;
 }Pos;
 
-int navto(char *, char **, const char *);
-int navopen(char *, char **, const char *);
-int navnext(char **);
-int navjump(char **);
-char * navgetname(char *, char *);
-int navreturn(char *, char **);
-int navscan(char *, Stack *);
+int navto(Pos *, const char *);
+int navopen(Pos *, const char *);
+int navnext(Pos *);
+int navgetwd(const Pos *, Entry *);
+int navreturn(Pos *);
+int naventry(const Pos *, const char *, Entry *);
+
 int navnextentry(char **, Entry *);
-int naventry(Entry *, const char *, char *);
+int navjump(char **);

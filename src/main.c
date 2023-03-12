@@ -9,7 +9,7 @@ static int loadf(FILE *, char **);
 
 
 int
-main(int argc, char **argv)
+main(void)
 {
 	char *in;
 	if(loadf(stdin, &in) < 0){
