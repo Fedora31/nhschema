@@ -15,18 +15,25 @@
 int
 navto(Pos *p, const char *path)
 {
-	char tmp[BUFSIZE] = {0};
+	char tmp[NAVBUFSIZE] = {0};
 	char *label;
 
 	/*if absolute path, set p to start (root)*/
 	if(path[0] == '/')
 		p->p = p->start;
 
-	strncpy(tmp, path, BUFSIZE-1);
+	strncpy(tmp, path, NAVBUFSIZE-1);
 
-	for(label = strtok(tmp, "/"); label != NULL; label = strtok(NULL, "/"))
+	for(label = strtok(tmp, "/"); label != NULL; label = strtok(NULL, "/")){
+		if(strcmp(label, ".") == 0)
+			continue;
+		if(strcmp(label, "..") == 0){
+			navreturn(p);
+			continue;
+		}
 		if(navopen(p, label) < 0)
 			return -1;
+	}
 
 	return 0;
 }
@@ -209,7 +216,7 @@ navnextentry(char **p, Entry *entry)
 
 		if(dq == 2 && new){
 			len = strchr(name, '"') - name;
-			strncpy(entry->name, name, len < BUFSIZE-1 ? len : BUFSIZE-1);
+			strncpy(entry->name, name, len < NAVBUFSIZE-1 ? len : NAVBUFSIZE-1);
 			new = 0;
 		}
 
@@ -223,7 +230,7 @@ navnextentry(char **p, Entry *entry)
 			/*get over the last quote for any future calls*/
 			(*p)++;
 			len = strchr(val, '"') - val;
-			strncpy(entry->val, val, len < BUFSIZE-1 ? len : BUFSIZE-1);
+			strncpy(entry->val, val, len < NAVBUFSIZE-1 ? len : NAVBUFSIZE-1);
 			entry->type = NAVFILE;
 			entry->link = save;
 			return 0;

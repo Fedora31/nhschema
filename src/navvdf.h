@@ -1,5 +1,5 @@
 
-#define BUFSIZE 512
+#define NAVBUFSIZE 512
 
 enum NAVTYPE{
 	NAVDIR,
@@ -8,8 +8,8 @@ enum NAVTYPE{
 
 typedef struct Entry{
 	enum NAVTYPE type;
-	char name[BUFSIZE];
-	char val[BUFSIZE];
+	char name[NAVBUFSIZE];
+	char val[NAVBUFSIZE];
 	char *link;
 }Entry;
 
