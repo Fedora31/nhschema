@@ -6,7 +6,7 @@
 #include "navvdf.h"
 #include "parser.h"
 
-
+/*the prefab entry is here to speed things up*/
 static Entry prefabs;
 
 static int ishat(const Entry *);
@@ -62,6 +62,11 @@ ishat(const Entry *item)
 	return 0;
 }
 
+/*Get the entry with the given name. This function will look at the
+ *given entry for any match and will recurse into any specified prefabs
+ *if it's not found. Prefabs can also contain prefabs.
+ *Warning: This does not check for death loops.
+ */
 static int
 getentry(const Entry *parent, const char *name, Entry *res)
 {
