@@ -22,4 +22,4 @@ typedef struct Classdata{
 }Classdata;
 
 int formatclasses(const Entry *, Classdata *);
-int formatpaths(const Entry *);
+int formatpaths(const Entry *, const Classdata *);

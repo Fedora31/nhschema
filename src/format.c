@@ -2,32 +2,33 @@
 #include <string.h>
 #include <stddef.h>
 
+#include <stack.h>
+#include <strstack.h>
+#include "str.h"
 #include "navvdf.h"
 #include "parser.h"
 #include "format.h"
 
 typedef struct Classstr{
-	int id;
 	char *name; /*default name, should be printed to stdout*/
 	char *sname; /*as it appears in the item schema*/
 	char *fname; /*as it appears in filenames*/
 }Classstr;
 
 static Classstr classstr[] = {
-	{0, "Scout",    "scout",    "scout"   },
-	{1, "Soldier",  "soldier",  "soldier" },
-	{2, "Pyro",     "pyro",     "pyro"    },
-	{3, "Demo",     "demoman",  "demo"    },
-	{4, "Engineer", "engineer", "engineer"},
-	{5, "Heavy",    "heavy",    "heavy"   },
-	{6, "Medic",    "medic",    "medic"   },
-	{7, "Sniper",   "sniper",   "sniper"  },
-	{8, "Spy",      "spy",      "spy"     },
-
-	{0, NULL, NULL, NULL }
+	{"Scout",    "scout",    "scout"   },
+	{"Soldier",  "soldier",  "soldier" },
+	{"Pyro",     "pyro",     "pyro"    },
+	{"Demo",     "demoman",  "demo"    },
+	{"Engineer", "engineer", "engineer"},
+	{"Heavy",    "heavy",    "heavy"   },
+	{"Medic",    "medic",    "medic"   },
+	{"Sniper",   "sniper",   "sniper"  },
+	{"Spy",      "spy",      "spy"     },
 };
 
 static int getclassid(const char *);
+static int getpaths(const Entry *, Stack *);
 
 
 int
@@ -86,22 +87,69 @@ end:
 }
 
 int
-formatpaths(const Entry *hat)
+formatpaths(const Entry *hat, const Classdata *cdata)
 {
 	Entry e;
-	if(getentry(hat, "model_player", &e) == 0)
-		printf("%s", e.val);
-	else if(getentry(hat, "model_player_per_class", &e) == 0){
+	char *lp;
+	char *test;
+	int i = 0;
+	Stack paths;
+	int res = -1;
 
+	stack_init(&paths, 1, 24, sizeof(char) * 512);
+
+	if(getpaths(hat, &paths) >= 0)
+		res = 0;
+	if(getentry(hat, "visuals", &e) == 0 && getentry(&e, "styles", &e) == 0){
+		lp = e.link;
+		while(navnextentry(&lp, &e) == 0)
+			if(getpaths(&e, &paths) >= 0)
+				res = 0;
 	}
+
+	/*if res is still -1 here, then there is truly no
+	 *paths in this item
+	 */
+	if(res == -1)
+		return res;
+
+	for(; (test = stack_getnextused(&paths, &i)) != NULL;){
+		printf("PATH: %s\n", test);
+	}
+
+	stack_free(&paths);
 	return 0;
 }
+
+static int
+getpaths(const Entry *p, Stack *s)
+{
+	Entry e;
+	char *lp;
+	int res = -1;
+
+	if(getentry(p, "model_player", &e) == 0){
+		res = 0;
+		if(strstack_contain(s, e.val) == -1)
+			stack_add(s, e.val);
+	}
+	if(getentry(p, "model_player_per_class", &e) == 0){
+		lp = e.link;
+		while(navnextentry(&lp, &e) == 0){
+			res = 0;
+			if(strstack_contain(s, e.val) == -1)
+				stack_add(s, e.val);
+		}
+	}
+	return res;
+}
+
 
 static int
 getclassid(const char *name)
 {
 	int i;
-	for(i = 0; classstr[i].name != NULL; i++){
+	for(i = 0; i < CLASSCOUNT; i++){
 		if(strcmp(classstr[i].name, name) == 0 ||
 			strcmp(classstr[i].sname, name) == 0 ||
 			strcmp(classstr[i].fname, name) == 0

@@ -48,7 +48,7 @@ parse(char *start)
 			if(printhat(&e) < 0){
 				getentry(&e, "name", &e);
 				fprintf(stderr, "err: couldn't parse entry of hat \"%s\"\n", e.val);
-				return -1;
+				continue;
 			}
 	}
 
@@ -89,6 +89,7 @@ printhat(const Entry *hat)
 	/*equip regions*/
 
 	/*TODO: I think there can be multiple equip regions?*/
+	/*TODO: The field "equip_regions" with an "s" exists too*/
 	if(getentry(hat, "equip_region", &e) < 0)
 		printf("None%c", sep);
 	else
@@ -107,7 +108,7 @@ printhat(const Entry *hat)
 
 	/*path*/
 
-	if(formatpaths(hat) < 0)
+	if(formatpaths(hat, &cdata) < 0)
 		return -1;
 
 

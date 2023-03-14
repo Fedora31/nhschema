@@ -175,6 +175,7 @@ navreturn(Pos *p)
 	return 0;
 }
 
+/*Could it be made to work with paths like navto()?*/
 int
 naventry(const Pos *p, const char *name, Entry *entry)
 {

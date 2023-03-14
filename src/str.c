@@ -1,4 +1,6 @@
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "str.h"
 
@@ -30,4 +32,55 @@ bstrtok_r(char **strp, const char *delim)
 		return start;
 	}
 	return NULL;
+}
+
+int
+strswap(char *s, const char *old, const char *new, int size)
+{
+	char *sub;
+	int ol = strlen(old);
+	int nl = strlen(new);
+	int tl;
+	int offset;
+	char *tmp;
+
+	if((sub = strstr(s, old)) == NULL)
+		return -1;
+	offset = sub-s;
+
+	/*save the string after the old substring*/
+
+	tl = size-(sub-s+ol);
+	if(tl < 0)
+		tl = 0;
+	if((tmp = malloc(sizeof(char) * tl)) == NULL)
+		return -1;
+
+	strncpy(tmp, sub+ol, tl);
+
+	/*write the new string in whole or in part*/
+
+	if(nl>=size-offset){
+		strncpy(sub, new, size-offset);
+		goto end;
+	}
+	strncpy(sub, new, nl);
+
+	/*write the saved string back*/
+
+	offset+=nl;
+	strncpy(sub+nl, tmp, size-offset);
+
+end:
+	free(tmp);
+	return 0;
+}
+
+int
+strswapall(char *s, const char *old, const char *new, int size)
+{
+	int res = 0;
+	while(strswap(s, old, new, size) == 0)
+		res++;
+	return res;
 }
