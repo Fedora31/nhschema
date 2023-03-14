@@ -1,5 +1,5 @@
 CC = gcc
-SRC = src/*.c
+SRC = src/*.c lib/*.c
 CFLAGS = -Ilib -Wall -Wextra -std=c89 -pedantic
 
 all:
