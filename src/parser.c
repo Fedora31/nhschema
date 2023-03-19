@@ -4,8 +4,9 @@
 
 #include "str.h"
 #include "navvdf.h"
-#include "format.h"
+#include "updater.h"
 #include "parser.h"
+#include "format.h"
 
 /*the prefab entry is here to speed things up*/
 static Entry prefabs;
@@ -43,14 +44,52 @@ parse(char *start)
 	}
 
 	printf("%s\n", header);
+
+
 	for(lp = p.p; navnextentry(&lp, &e) == 0;){
-		if(ishat(&e))
-			if(printhat(&e) < 0){
+		if(ishat(&e)){
+			if(updater_print(&e) < 0){
 				getentry(&e, "name", &e);
 				fprintf(stderr, "err: couldn't parse entry of hat \"%s\"\n", e.val);
 				continue;
-			}
+				}
+			/*if(printhat(&e) < 0){
+				getentry(&e, "name", &e);
+				fprintf(stderr, "err: couldn't parse entry of hat \"%s\"\n", e.val);
+				continue;
+			}*/
+		}
 	}
+
+	return 0;
+}
+
+int
+getclasses(const Entry *hat, Classdata *cdata)
+{
+	Entry e = *hat;
+	int class;
+	char *lp;
+
+	memset(cdata->id, 0, sizeof(int) * CLASSCOUNT);
+
+	/*from the wiki: "If this field is not present all classes can
+	 *use the item."
+	 */
+	if(getentry(hat, "used_by_classes", &e) < 0){
+		memset(cdata->id, 1, sizeof(int) * CLASSCOUNT);
+		return 0;
+	}
+	lp = e.link;
+	if(navnextentry(&lp, &e) < 0){
+		memset(cdata->id, 1, sizeof(int) * CLASSCOUNT);
+		return 0;
+	}
+	do{
+		if((class = getclass_n(e.name)->id) == -1)
+			return -1;
+		cdata->id[class] = 1;
+	}while(navnextentry(&lp, &e) == 0);
 
 	return 0;
 }
@@ -126,13 +165,10 @@ int
 getentry(const Entry *parent, const char *name, Entry *res)
 {
 	Entry e;
-	Pos p;
+	Entry p = *parent;
 	char *prefab;
 	char buf[NAVBUFSIZE] = {0};
 	char *ptr = buf;
-
-	p.start = parent->link;
-	p.p = parent->link;
 
 	if(naventry(&p, name, res) >= 0)
 		return 0;
@@ -143,8 +179,7 @@ getentry(const Entry *parent, const char *name, Entry *res)
 		return -1; /*no prefab entry*/
 
 	strncpy(buf, e.val, NAVBUFSIZE-1);
-	p.start = prefabs.link;
-	p.p = prefabs.link;
+	p = prefabs;
 
 	while((prefab = bstrtok_r(&ptr, " ")) != NULL){
 		if(naventry(&p, prefab, &e) < 0){

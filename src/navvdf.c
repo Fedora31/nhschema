@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "str.h"
 #include "navvdf.h"
 
 
@@ -175,17 +176,42 @@ navreturn(Pos *p)
 	return 0;
 }
 
-/*Could it be made to work with paths like navto()?*/
 int
-naventry(const Pos *p, const char *name, Entry *entry)
+naventry(const Entry *p, const char *path, Entry *entry)
 {
-	char *lp = p->p;
-	while(navnextentry(&lp, entry) == 0){
-		if(strcmp(entry->name, name) == 0)
+	char tmp[NAVBUFSIZE];
+	char *name;
+	char *ptr = tmp;
+	Entry e = *p;
+
+	strncpy(tmp, path, NAVBUFSIZE-1);
+
+	/*TODO: implement . .. and /*/
+	while((name = bstrtok_r(&ptr, "/")) != NULL){
+		if(navopene(&e, name, &e) < 0)
+			return -1;
+	}
+	*entry = e;
+	return 0;
+}
+
+int
+navopene(const Entry *p, const char *label, Entry *r)
+{
+	Entry e;
+	char *lp = p->link;
+
+	if(p->type == NAVFILE)
+		return -1;
+	while(navnextentry(&lp, &e) == 0){
+		if(strcmp(e.name, label) == 0){
+			*r = e;
 			return 0;
+		}
 	}
 	return -1;
 }
+
 
 /*Search for the next entry in the current NAVDIR.
  */

@@ -23,7 +23,8 @@ int navopen(Pos *, const char *);
 int navnext(Pos *);
 int navgetwd(const Pos *, Entry *);
 int navreturn(Pos *);
-int naventry(const Pos *, const char *, Entry *);
+int naventry(const Entry *, const char *, Entry *);
+int navopene(const Entry *, const char *, Entry *);
 
 int navnextentry(char **, Entry *);
 int navjump(char **);
