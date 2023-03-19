@@ -17,12 +17,12 @@
 #define B_HEAD       0x20
 #define B_SHOES      0x40
 #define B_HANDS      0x80
-
 #define ERRMASK 0x0
+
 static const Classinfo classinfo[] = {
 	{0x1,     "Scout",    "scout",    "scout",    SCOUT,    B_HAT | B_HEADPHONES | B_DOGTAGS | B_SHOES},
 	{0x2,     "Soldier",  "soldier",  "soldier",  SOLDIER,  B_HAT | B_GRENADES},
-	{0x4,     "Pyro",     "pyro",     "pyro",     PYRO,     B_BACKPACK | B_HEAD},
+	{0x4,     "Pyro",     "pyro",     "pyro",     PYRO,     B_BACKPACK | B_HEAD | B_GRENADES},
 	{0x8,     "Demo",     "demo",     "demoman",  DEMO,     B_SHOES},
 	{0x8,     "Demo",     "demo",     "Demoman",  DEMO,     B_SHOES}, /*Dr's Dapper Topper*/
 	{0x10,    "Engineer", "engineer", "engineer", ENGINEER, B_HAT},
@@ -210,7 +210,7 @@ formatpaths2
 
 	if(strcmp(e->name, "basename")==0){
 		for(i = 0; i < CLASSCOUNT; i++){
-			if(classb >> i & 1){
+			if(classb >> i & 1 && strlen(e->val) > 0){
 				strncpy(paths[i], e->val, NAVBUFSIZE-1);
 				strswapall(paths[i], "%s", getclass_i(i)->fname, NAVBUFSIZE-1);
 				res |= getclass_i(i)->mask;

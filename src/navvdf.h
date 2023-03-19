@@ -11,6 +11,7 @@ typedef struct Entry{
 	char name[NAVBUFSIZE];
 	char val[NAVBUFSIZE];
 	char *link;
+	char *start;
 }Entry;
 
 typedef struct Pos{

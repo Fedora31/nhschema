@@ -43,7 +43,7 @@ parse(char *start)
 		return -1;
 	}
 
-	printf("%s\n", header);
+	/*printf("%s\n", header);*/
 
 
 	for(lp = p.p; navnextentry(&lp, &e) == 0;){
@@ -192,4 +192,10 @@ getentry(const Entry *parent, const char *name, Entry *res)
 
 	/*if we get here, the entry wasn't found anywhere*/
 	return -1;
+}
+
+int
+getprefab(const char *name, Entry *res)
+{
+	return getentry(&prefabs, name, res);
 }
