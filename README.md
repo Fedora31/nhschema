@@ -24,14 +24,14 @@ some entry name and their location are hard-coded into the
 program.
 
 Some cosmetic items do not possess common entry names (e.g.
-"The Grandmaster". Their paths are thus not handled correctly.
+"The Grandmaster"). Their paths are thus not handled correctly.
 
 Cosmetic items which possess styles that hide/show a
 bodygroup will have the bodygroup reappear for both styles,
 wether or not it wasn't disabled to begin with (resulting to
 overlapping hats, which is in most circumstances not noticeable
 unless you modify the mod with
-[nhcustom2](https://github.com/Fedora31/nhcustom2).). For hats
+[nhcustom2](https://github.com/Fedora31/nhcustom2)). For hats
 that use the same model between styles (e.g. "Honest Halo"),
 this limitation is with how no-hats-bgum works. for the others,
 it is a limitation of this program.
@@ -40,5 +40,5 @@ it is a limitation of this program.
 
 `./nhschema <items_game.txt`
 
-'items_game.txt` is the item schema which can be found at
+`items_game.txt` is the item schema which can be found at
 `tf/scripts/items/items_game.txt`.
