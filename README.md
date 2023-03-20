@@ -28,7 +28,7 @@ Some cosmetic items do not possess common entry names (e.g.
 
 Cosmetic items which possess styles that hide/show a
 bodygroup will have the bodygroup reappear for both styles,
-wether or not it wasn't disabled to begin with (resulting to
+wether or not it wasn't disabled to begin with (resulting in
 overlapping hats, which is in most circumstances not noticeable
 unless you modify the mod with
 [nhcustom2](https://github.com/Fedora31/nhcustom2)). For hats
