@@ -2,8 +2,6 @@
 #include <string.h>
 #include <stddef.h>
 
-#include <stack.h>
-#include <strstack.h>
 #include "str.h"
 #include "navvdf.h"
 #include "parser.h"
