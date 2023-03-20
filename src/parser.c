@@ -10,12 +10,8 @@
 
 /*the prefab entry is here to speed things up*/
 static Entry prefabs;
-static char *header = "hat;class;equip;date;update;path";
-static char sep = ';';
-static char insep = '|';
 
 static int ishat(const Entry *);
-static int printhat(const Entry *);
 
 
 int
@@ -43,55 +39,39 @@ parse(char *start)
 		return -1;
 	}
 
-	/*printf("%s\n", header);*/
-
-
 	for(lp = p.p; navnextentry(&lp, &e) == 0;){
 		if(ishat(&e)){
 			if(updater_print(&e) < 0){
 				getentry(&e, "name", &e);
 				fprintf(stderr, "err: couldn't parse entry of hat \"%s\"\n", e.val);
 				continue;
-				}
-			/*if(printhat(&e) < 0){
-				getentry(&e, "name", &e);
-				fprintf(stderr, "err: couldn't parse entry of hat \"%s\"\n", e.val);
-				continue;
-			}*/
+			}
 		}
 	}
 
 	return 0;
 }
 
-int
-getclasses(const Entry *hat, Classdata *cdata)
+/*Return a mask with the found classes.
+ *Warning: if no class is found, the
+ *bits will be all set, as per the wiki
+ *documentation.
+ */
+unsigned int
+getclasses(const Entry *hat)
 {
-	Entry e = *hat;
-	int class;
+	Entry e;
 	char *lp;
+	int i = 0;
+	unsigned int mask = 0;
 
-	memset(cdata->id, 0, sizeof(int) * CLASSCOUNT);
-
-	/*from the wiki: "If this field is not present all classes can
-	 *use the item."
+	/*The bits will also be all set if the entry is empty.
 	 */
-	if(getentry(hat, "used_by_classes", &e) < 0){
-		memset(cdata->id, 1, sizeof(int) * CLASSCOUNT);
-		return 0;
-	}
-	lp = e.link;
-	if(navnextentry(&lp, &e) < 0){
-		memset(cdata->id, 1, sizeof(int) * CLASSCOUNT);
-		return 0;
-	}
-	do{
-		if((class = getclass_n(e.name)->id) == -1)
-			return -1;
-		cdata->id[class] = 1;
-	}while(navnextentry(&lp, &e) == 0);
+	if(getentry(hat, "used_by_classes", &e) == 0)
+		for(lp = e.link; navnextentry(&lp, &e) == 0; i++)
+			mask |= getclass_n(e.name)->mask;
 
-	return 0;
+	return i != 0 ? mask : ~(mask & 0);
 }
 
 static int
@@ -103,55 +83,6 @@ ishat(const Entry *item)
 		return 0;
 	if(strcmp(e.val, "head") == 0 || strcmp(e.val, "misc") == 0)
 		return 1;
-
-	return 0;
-}
-
-static int
-printhat(const Entry *hat)
-{
-	Entry e;
-	char *lp;
-	Classdata cdata;
-
-	/*name*/
-
-	if(getentry(hat, "name", &e) < 0)
-		return -1;
-	printf("%s%c", e.val, sep);
-
-	/*classes*/
-
-	if(formatclasses(&e, &cdata) < 0)
-		return -1;
-
-	/*equip regions*/
-
-	/*TODO: I think there can be multiple equip regions?*/
-	/*TODO: The field "equip_regions" with an "s" exists too*/
-	if(getentry(hat, "equip_region", &e) < 0)
-		printf("None%c", sep);
-	else
-		printf("%s%c", e.val, sep);
-
-	/*date*/
-
-	if(getentry(hat, "first_sale_date", &e) < 0)
-		printf("None%c", sep);
-	else
-		printf("%s%c", e.val, sep);
-
-	/*update*/
-
-	printf("None%c", sep);
-
-	/*path*/
-
-	if(formatpaths(hat, &cdata) < 0)
-		return -1;
-
-
-	printf("\n");
 
 	return 0;
 }

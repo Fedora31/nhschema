@@ -31,6 +31,7 @@ updater_print(const Entry *hat)
 	Mdl m = {0};
 	Entry e;
 	char *lp;
+	int i;
 
 	strncpy(m.suffix, hat->name, NAVBUFSIZE-1);
 
@@ -40,21 +41,17 @@ updater_print(const Entry *hat)
 
 	if(getentry(hat, "item_name", &e) == 0)
 		strncpy(m.qc, e.val, NAVBUFSIZE-1);
-	/*printf("ITEM: %s\n", e.val);*/
+	else
+		strncpy(m.qc, "#NONAME", NAVBUFSIZE-1);
 
-	if(getentry(hat, "used_by_classes", &e) < 0){
-		fprintf(stderr, "err: couldn't get classes\n");
-		return -1;
-	}
-	for(lp = e.link; navnextentry(&lp, &e) == 0; )
-		m.classb |= getclass_n(e.name)->mask;
-
+	m.classb |= getclasses(hat);
 	m.new |= getpaths(hat, &m);
 
 	/*Some hats use the same model for multiple classes.
 	 *As it is impossible to use bodygroups of multiple classes
-	 *on the same model, I just treat them as regular hats.
-	 *See the hat "Honest Halo" in the schema for an example.*/
+	 *on the same model, I just create a vtx instead.
+	 *See the hat "Honest Halo" in the schema for an example.
+	 */
 	if(m.solemodel && setbitc(m.classb) > 1){
 		m.force1vtx = 1;
 		m.vtx = 1;
@@ -65,7 +62,7 @@ updater_print(const Entry *hat)
 		return 0;
 	}
 
-	for(lp = e.link; navnextentry(&lp, &e) == 0; ){
+	for(lp = e.link, i = 0; navnextentry(&lp, &e) == 0; i++){
 		m.new |= getpaths(&e, &m);
 
 		if(m.solemodel && setbitc(m.classb) > 1){
@@ -75,6 +72,8 @@ updater_print(const Entry *hat)
 
 		if(getentry(&e, "name", &e) == 0)
 			strncpy(m.qc, e.val, NAVBUFSIZE-1);
+		else
+			sprintf(m.qc, "#NONAME_STYLE%d", i); /*damn you c89*/
 
 		output(&m);
 
@@ -94,9 +93,14 @@ getbodys(const Entry *p)
 	char *ptr = e.val;
 	unsigned int mask = 0;
 
-	/*I get the bodygroup of all the styles at once too, since some styles
-	 *only toggle a bodygroup on without providing a new model, so there's
-	 *no possibility to create an entry for each style.
+	/*This gets the bodygroup of all the styles at once too, since some
+	 *styles only toggle a bodygroup on without providing a new model, so
+	 *there's no possibility to create an entry for each style.
+	 */
+
+	/*This also brings the problem that the code can't toggle a bodygroup
+	 *on and off, even if the style does use a different model. Improvements
+	 *can be done here, but I think the code is complex enough as it is.
 	 */
 
 	if(getentry(p, "visuals/player_bodygroups", &e) == 0)
@@ -126,6 +130,10 @@ getbodys(const Entry *p)
 	return mask;
 }
 
+/*Warning: some obscure hats like "The Grandmaster" are NOT
+ *compatible with this function, and with the code in general.
+ *Improvements are needed.
+ */
 static unsigned int
 getpaths(const Entry *p, Mdl *m)
 {
@@ -146,7 +154,7 @@ getpaths(const Entry *p, Mdl *m)
 	}
 	if(getentry(p, "model_player_per_class", &e) == 0)
 		for(lp = e.link; navnextentry(&lp, &child) == 0; )
-			mask |= formatpaths2(&child, m->classb, m->paths);
+			mask |= formatpaths(&child, m->classb, m->paths);
 	return mask;
 }
 
