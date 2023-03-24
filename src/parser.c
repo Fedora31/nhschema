@@ -7,6 +7,7 @@
 #include "updater.h"
 #include "parser.h"
 #include "format.h"
+#include "navvdf2.h"
 
 /*the prefab entry is here to speed things up*/
 static Entry prefabs;
@@ -20,6 +21,10 @@ parse(char *start)
 	Pos p;
 	Entry e;
 	char *lp;
+
+	unsigned int len;
+	char *copy;
+	Tree *t;
 
 	p.start = start;
 	p.p = start;
@@ -39,7 +44,7 @@ parse(char *start)
 		return -1;
 	}
 
-	for(lp = p.p; navnextentry(&lp, &e) == 0;){
+	/*for(lp = p.p; navnextentry(&lp, &e) == 0;){
 		if(ishat(&e)){
 			if(updater_print(&e) < 0){
 				getentry(&e, "name", &e);
@@ -47,7 +52,13 @@ parse(char *start)
 				continue;
 			}
 		}
-	}
+	}*/
+
+	len = strlen(start);
+	copy = malloc(len+1);
+	memcpy(copy, start, len+1);
+	t = navgentree(copy, 2048);
+	printf("went to %d\n", navto2(t, "/items_game/prefabs/hat/prefab"));
 
 	return 0;
 }

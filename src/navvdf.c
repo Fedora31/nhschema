@@ -56,9 +56,6 @@ navopen(Pos *p, const char *label)
 	return -1;
 }
 
-/*Get the name of the current NAVDIR. The returned
- *char * must be freed after use.
- */
 int
 navgetwd(const Pos *p, Entry *e)
 {
@@ -193,6 +190,18 @@ naventry(const Entry *p, const char *path, Entry *entry)
 	}
 	*entry = e;
 	return 0;
+}
+
+int
+navbreak(Entry *e)
+{
+	char *lp = e->link;
+	Pos p;
+
+	if(navjump(&lp)<0)
+		return -1;
+	p.p = lp;
+	return navgetwd(&p, e);
 }
 
 int
