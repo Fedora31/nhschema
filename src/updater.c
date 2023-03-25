@@ -137,6 +137,16 @@ getpaths(const Entry *p, Mdl *m)
 	unsigned int mask = 0;
 	int i;
 
+	/*"model_player_per_class" takes precedence over "model_player".
+	 *"Team Captain" and the "Prinny Pouch" include (and I wonder why)
+	 *both entries, and the paths in "model_player" are either wrong or
+	 *incomplete.
+	 */
+	if(navopen2(p, "model_player_per_class", &e) == 0){
+		for(i = 0; i < e->childc; i++)
+			mask |= formatpaths(e->childs[i], m->classb, m->paths);
+		return mask;
+	}
 
 	/*Should copy the path in the right slot.
 	 *This assumes that entries with a "model_player" entry are
@@ -147,10 +157,7 @@ getpaths(const Entry *p, Mdl *m)
 		m->solemodel = 1;
 		return m->classb;
 	}
-	if(navopen2(p, "model_player_per_class", &e) == 0)
-		for(i = 0; i < e->childc; i++)
-			mask |= formatpaths(e->childs[i], m->classb, m->paths);
-	return mask;
+	return 0;
 }
 
 static void
