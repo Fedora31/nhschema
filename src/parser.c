@@ -4,15 +4,15 @@
 
 #include "str.h"
 #include "navvdf.h"
+#include "navvdf2.h"
 #include "updater.h"
 #include "parser.h"
 #include "format.h"
-#include "navvdf2.h"
 
 /*the prefab entry is here to speed things up*/
 static Entry prefabs;
 
-static int ishat(const Entry *);
+static int ishat(const Pos2 *);
 
 
 int
@@ -25,6 +25,8 @@ parse(char *start)
 	unsigned int len;
 	char *copy;
 	Tree *t;
+	unsigned int i;
+	Pos2 pos;
 
 	p.start = start;
 	p.p = start;
@@ -57,8 +59,20 @@ parse(char *start)
 	len = strlen(start);
 	copy = malloc(len+1);
 	memcpy(copy, start, len+1);
-	t = navgentree(copy, 2048);
-	printf("went to %d\n", navto2(t, "/items_game/prefabs/hat/prefab"));
+	if((t = navgentree(copy, 2048)) == NULL){
+		fprintf(stderr, "fatal: couldn't create tree\n");
+		return -1;
+	}
+
+	pos_init(&pos, t);
+	navto2(&pos, "/items_game/items");
+	for(i = 0; navtoi(&pos, i++) >= 0; navto2(&pos, "..")){
+		if(ishat(&pos)){
+			/*printf("%s is a hat\n", pos.p[pos.i]->name);*/
+			if(updater_print(&pos) < 0)
+				fprintf(stderr, "err: couldn't parse hat \"%s\"\n", pos.p[pos.i]->name);
+		}
+	}
 
 	return 0;
 }
@@ -69,32 +83,30 @@ parse(char *start)
  *documentation.
  */
 unsigned int
-getclasses(const Entry *hat)
+getclasses(const Entry2 *hat)
 {
-	Entry e;
+	Entry2 *e;
 	char *lp;
-	int i = 0;
+	int i;
 	unsigned int mask = 0;
 
 	/*The bits will also be all set if the entry is empty.
 	 */
-	if(getentry(hat, "used_by_classes", &e) == 0)
-		for(lp = e.link; navnextentry(&lp, &e) == 0; i++)
-			mask |= getclass_n(e.name)->mask;
+	if(navopen2(hat, "used_by_classes", &e) == 0)
+		for(i = 0; i < e->childc; i++)
+			mask |= getclass_n(e->childs[i]->name)->mask;
 
 	return i != 0 ? mask : ~(mask & 0);
 }
 
 static int
-ishat(const Entry *item)
+ishat(const Pos2 *p)
 {
-	Entry e;
-
-	if(getentry(item, "item_slot", &e) < 0)
+	Pos2 lp = *p;
+	if(navto2(&lp, "item_slot")<0)
 		return 0;
-	if(strcmp(e.val, "head") == 0 || strcmp(e.val, "misc") == 0)
+	if(strcmp(lp.p[lp.i]->val, "head") == 0 || strcmp(lp.p[lp.i]->val, "misc") == 0)
 		return 1;
-
 	return 0;
 }
 

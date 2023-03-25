@@ -3,6 +3,7 @@
 
 #include "str.h"
 #include "navvdf.h"
+#include "navvdf2.h"
 #include "updater.h"
 #include "parser.h"
 #include "format.h"
@@ -20,27 +21,29 @@ typedef struct Mdl{
 }Mdl;
 
 static void output(const Mdl *);
-static unsigned int getpaths(const Entry *, Mdl *);
-static unsigned int getbodys(const Entry *);
+static unsigned int getpaths(const Entry2 *, Mdl *);
+static unsigned int getbodys(const Pos2 *);
 static int setbitc(unsigned int);
 
 
 int
-updater_print(const Entry *hat)
+updater_print(const Pos2 *pos)
 {
 	Mdl m = {0};
-	Entry e;
+	Entry2 *e;
+	Entry2 *hat = pos->p[pos->i];
 	char *lp;
 	int i;
+	Pos2 lpos = *pos;
 
 	strncpy(m.suffix, hat->name, NAVBUFSIZE-1);
 
 	/*if the hat doesn't possess bodygroup entries, create a vtx instead*/
-	if(!(m.bodyb |= getbodys(hat)))
+	if(!(m.bodyb |= getbodys(pos)))
 		m.vtx = 1;
 
-	if(getentry(hat, "item_name", &e) == 0)
-		strncpy(m.qc, e.val, NAVBUFSIZE-1);
+	if(navopen2(hat, "item_name", &e) == 0)
+		strncpy(m.qc, e->val, NAVBUFSIZE-1);
 	else
 		strncpy(m.qc, "#NONAME", NAVBUFSIZE-1);
 
@@ -57,21 +60,24 @@ updater_print(const Entry *hat)
 		m.vtx = 1;
 	}
 
-	if(getentry(hat, "visuals/styles", &e) < 0){
+	if(navto2(&lpos, "visuals/styles") < 0){
 		output(&m);
 		return 0;
 	}
+	e = lpos.p[lpos.i];
 
-	for(lp = e.link, i = 0; navnextentry(&lp, &e) == 0; i++){
-		m.new |= getpaths(&e, &m);
+	for(i = 0; i < e->childc; i++){
+		Entry2 *child;
+
+		m.new |= getpaths(e->childs[i], &m);
 
 		if(m.solemodel && setbitc(m.classb) > 1){
 			m.force1vtx = 1;
 			m.vtx = 1;
 		}
 
-		if(getentry(&e, "name", &e) == 0)
-			strncpy(m.qc, e.val, NAVBUFSIZE-1);
+		if(navopen2(e->childs[i], "name", &child) == 0)
+			strncpy(m.qc, child->val, NAVBUFSIZE-1);
 		else
 			sprintf(m.qc, "#NONAME_STYLE%d", i); /*damn you c89*/
 
@@ -84,14 +90,15 @@ updater_print(const Entry *hat)
 }
 
 static unsigned int
-getbodys(const Entry *p)
+getbodys(const Pos2 *pos)
 {
-	Entry e;
+	Entry2 *e;
 	char *lp;
 	char *lp2;
 	char *prefab;
-	char *ptr = e.val;
 	unsigned int mask = 0;
+	Pos2 lpos = *pos;
+	int i;
 
 	/*This gets the bodygroup of all the styles at once too, since some
 	 *styles only toggle a bodygroup on without providing a new model, so
@@ -103,30 +110,24 @@ getbodys(const Entry *p)
 	 *can be done here, but I think the code is complex enough as it is.
 	 */
 
-	if(getentry(p, "visuals/player_bodygroups", &e) == 0)
-		for(lp = e.link; navnextentry(&lp, &e) == 0; )
-			if(e.val[0]-'0' == 1)
-				mask |= getbody_n(e.name)->mask;
-
-	if(getentry(p, "visuals/styles", &e) == 0)
-		for(lp = e.link; navnextentry(&lp, &e) == 0; )
-			if(getentry(&e, "additional_hidden_bodygroups", &e) == 0)
-				for(lp2 = e.link; navnextentry(&lp2, &e) == 0; )
-					mask |= getbody_n(e.name)->mask;
-
-	if(getentry(p, "prefab", &e) < 0)
-		return mask;
-
-	/*recursively get any other bodygroups that might be in prefabs
-	 *Some hats do this (e.g. chill chullo)
-	 */
-	while((prefab = bstrtok_r(&ptr, " ")) != NULL){
-		Entry child;
-		if(getprefab(prefab, &child) < 0)
-			continue;
-		mask |= getbodys(&child);
+	if(navto2(&lpos, "visuals/player_bodygroups") == 0){
+		e = lpos.p[lpos.i];
+		for(i = 0; i < e->childc; i++)
+			if(e->childs[i]->val[0]-'0' == 1)
+				mask |= getbody_n(e->childs[i]->name)->mask;
+		lpos = *pos;
 	}
 
+	if(navto2(&lpos, "visuals/styles") == 0){
+		Entry2 *child;
+		e = lpos.p[lpos.i];
+		for(i = 0; i < e->childc; i++)
+			if(navopen2(e->childs[i], "additional_hidden_bodygroups", &child) == 0){
+				int j;
+				for(j = 0; j < child->childc; j++)
+					mask |= getbody_n(child->childs[j]->name)->mask;
+			}
+		}
 	return mask;
 }
 
@@ -135,26 +136,27 @@ getbodys(const Entry *p)
  *Improvements are needed.
  */
 static unsigned int
-getpaths(const Entry *p, Mdl *m)
+getpaths(const Entry2 *p, Mdl *m)
 {
-	Entry e;
-	Entry child;
+	Entry2 *e;
+	Entry2 *child;
 	char *lp;
 	unsigned int mask = 0;
+	int i;
 
 
 	/*Should copy the path in the right slot.
 	 *This assumes that entries with a "model_player" entry are
 	 *for one class only, hence it simply returns classb as the mask.
 	 */
-	if(getentry(p, "model_player", &e) == 0 && strlen(e.val) > 0){ /*strlen bc Web Easteregg Medal*/
-		strncpy(m->paths[getclass_b(m->classb)->id], e.val, NAVBUFSIZE-1);
+	if(navopen2(p, "model_player", &e) == 0 && strlen(e->val) > 0){ /*strlen bc Web Easteregg Medal*/
+		strncpy(m->paths[getclass_b(m->classb)->id], e->val, NAVBUFSIZE-1);
 		m->solemodel = 1;
 		return m->classb;
 	}
-	if(getentry(p, "model_player_per_class", &e) == 0)
-		for(lp = e.link; navnextentry(&lp, &child) == 0; )
-			mask |= formatpaths(&child, m->classb, m->paths);
+	if(navopen2(p, "model_player_per_class", &e) == 0)
+		for(i = 0; i < e->childc; i++)
+			mask |= formatpaths(e->childs[i], m->classb, m->paths);
 	return mask;
 }
 

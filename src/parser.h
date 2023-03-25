@@ -24,4 +24,4 @@ typedef struct Classdata{
 int parse(char *);
 int getentry(const Entry *, const char *, Entry *);
 int getprefab(const char *, Entry *);
-unsigned int getclasses(const Entry *);
+unsigned int getclasses(const Entry2 *);

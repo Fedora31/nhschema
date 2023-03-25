@@ -4,6 +4,7 @@
 
 #include "str.h"
 #include "navvdf.h"
+#include "navvdf2.h"
 #include "parser.h"
 #include "format.h"
 
@@ -50,7 +51,7 @@ static const Bodyinfo bodyinfo[] = {
 
 unsigned int
 formatpaths
-(const Entry *e, unsigned int classb, char paths[CLASSCOUNT][NAVBUFSIZE])
+(const Entry2 *e, unsigned int classb, char paths[CLASSCOUNT][NAVBUFSIZE])
 {
 	int i;
 	unsigned int res = 0;

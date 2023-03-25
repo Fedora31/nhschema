@@ -7,12 +7,11 @@
 #include "navvdf.h"
 #include "navvdf2.h"
 
-#define TREEDEPTH 128
-
 struct Tree{
 	char *buf;
 	Pool pool;
 	Entry2 *path[TREEDEPTH];
+	Entry2 *root;
 	unsigned int i;
 };
 
@@ -28,8 +27,8 @@ static int genentries(Tree *);
 static int entryinit(Entry2 *, Entry2 *);
 static int entryaddto(Entry2 *, Entry2 *);
 static int mergeprefabs(Tree *);
-static int navopen2(Entry2 *, const char *, Entry2 **);
 static int navmerge(Entry2 *, Entry2 *);
+static int mergeduplicates(Entry2 *);
 
 
 Tree *
@@ -45,12 +44,19 @@ navgentree(char *buf, unsigned int alloc)
 	return t;
 }
 
+void
+pos_init(Pos2 *p, Tree *t)
+{
+	p->i = 0;
+	p->p[p->i] = t->root;
+}
+
 int
-navto2(Tree *t, const char *path)
+navto2(Pos2 *pos, const char *path)
 {
 	char tmp[NAVBUFSIZE] = {0};
 	char *name, *ptr = tmp;
-	int res = 0, i = t->i;
+	int res = 0, i = pos->i;
 
 	strncpy(tmp, path, NAVBUFSIZE-1);
 
@@ -67,24 +73,42 @@ navto2(Tree *t, const char *path)
 		}
 		if(i >= TREEDEPTH-1)
 			return -1;
-		if((res = navopen2(t->path[i], name, &t->path[i+1]))<0)
+		if((res = navopen2(pos->p[i], name, &pos->p[i+1]))<0)
 			break;
 		i++;
 	}
 	if(res >= 0)
-		t->i = i;
+		pos->i = i;
 	return res;
 }
 
-static int
-navopen2(Entry2 *e, const char *name, Entry2 **to)
+int
+navtoi(Pos2 *pos, int i)
 {
-	unsigned int i;
+	if(i < 0 || i >= pos->p[pos->i]->childc)
+		return -1;
+	if(pos->i >= TREEDEPTH-1)
+		return -1;
+
+	pos->p[pos->i+1] = pos->p[pos->i]->childs[i];
+	pos->i++;
+	return 0;
+}
+
+Entry2 *
+navwd(Tree *t)
+{
+	return t->path[t->i];
+}
+
+int
+navopen2(const Entry2 *e, const char *name, Entry2 **to)
+{
+	int i;
 
 	/*you can't cd to a file*/
 	if(e->type == NAVFILE)
 		return NAVISFILE;
-
 	for(i = 0; i < e->childc; i++){
 		if(strcmp(e->childs[i]->name, name) == 0){
 			*to = e->childs[i];
@@ -102,7 +126,7 @@ genentries(Tree *t)
 	char *p = t->buf;
 	Pool *pool = &t->pool;
 
-	t->path[0] = parent = pool_getslot(pool, &handle);
+	t->root = t->path[0] = parent = pool_getslot(pool, &handle);
 	entryinit(NULL, t->path[0]);
 	t->path[0]->type = NAVDIR; /*we won't be able to cd otherwise*/
 
@@ -122,12 +146,8 @@ genentries(Tree *t)
 			return -1;
 		}
 
-		if(res == NAVFILE){
-			printf("%d: file: %s\n", handle, child->name);
-		}else if(res == NAVDIR){
-			printf("%d: dir: %s\n", handle, child->name);
+		if(res == NAVDIR)
 			parent = child;
-		}
 
 		pool_set(pool, handle++);
 		if((child = pool_getslot(pool, &handle)) == NULL){
@@ -150,6 +170,9 @@ mergeprefabs(Tree *t)
 	char tmp[NAVBUFSIZE] = {0}, *ptr;
 	char path[NAVBUFSIZE] = "/items_game/prefabs/";
 	char *prefab;
+	Pos2 pos;
+
+	pos_init(&pos, t);
 
 	for(i = 0, handle = 0;; i++, handle++){
 		if((curr = pool_getnextused(&t->pool, &handle)) == NULL)
@@ -160,7 +183,6 @@ mergeprefabs(Tree *t)
 		if(navopen2(curr, "prefab", &preffile) < 0)
 			continue;
 
-		printf("%d:%d: got: %s (%s)\n", i, handle, curr->name, preffile->val);
 		ptr = tmp;
 
 		strncpy(tmp, preffile->val, NAVBUFSIZE-1);
@@ -168,26 +190,94 @@ mergeprefabs(Tree *t)
 			/*but what if the prefab has a looong name? strncpy doesn't check the destination buffer...*/
 			strcpy(strrchr(path, '/')+1, prefab);
 
-			if(navto2(t, path)<0){
+			if((navto2(&pos, path))<0){
 				fprintf(stderr, "warn: prefab \"%s\" not found\n", path);
 				continue;
 			}
-			printf(">%s\n", path);
+			navmerge(pos.p[pos.i], curr);
+			mergeduplicates(curr);
+		}
 
-			navmerge(t->path[t->i], curr);
+	}
+	return 0;
+}
+
+Entry2 *
+entrygeti(const Entry2 *e, int i)
+{
+	if(i < 0 || i >= e->childc)
+		return NULL;
+	return e->childs[i];
+}
+
+int
+entrycontains(const Entry2 *e, const char *name)
+{
+	int i;
+	for(i = 0; i < e->childc; i++)
+		if(strcmp(e->childs[i]->name, name) == 0)
+			return i;
+	return -1;
+}
+
+static int
+mergeduplicates(Entry2 *e)
+{
+	/*Yes, this doesn't actually merge entries together, but rather makes it so
+	 *that all duplicate entries have the same content. And yes, this results in
+	 *a lot of wasted space.
+	 */
+
+	/*This function was created because some hats (e.g. The Cute Suit) have a
+	 *duplicated "visuals" entry, one which contains bodygroup info, the other
+	 *style info. Since the code only searches for one entry, this ensures
+	 *that all the needed information is available in the same entry.
+	 */
+
+	int i, j;
+	for(i = 0; i < e->childc; i++){
+		if(e->childs[i]->type == NAVFILE)
+			continue;
+
+		for(j = 0; j < e->childc; j++){
+			if(e->childs[j]->type == NAVFILE || j == i)
+				continue;
+
+			if(strcmp(e->childs[i]->name, e->childs[j]->name) == 0)
+				navmerge(e->childs[j], e->childs[i]);
 		}
 	}
-
-	navto2(t, "/");
-
 	return 0;
 }
 
 static int
 navmerge(Entry2 *from, Entry2 *to)
 {
-	printf("MERGE %s TO %s\n", from->name, to->name);
+	int i, res;
+	Entry2 *curr;
 
+	/*Files that have the same name as other entries are simply added in the list.
+	 *Since they are added after the original content, they won't be returned by
+	 *entrycontains() or other functions that only check the name.
+	 */
+
+	/*printf("MERGE %s TO %s\n", from->name, to->name);*/
+
+	if(from == to){
+		fprintf(stderr, "warn: tried to merge entry \"%s\" on itself\n", from->name);
+		return 0;
+	}
+
+	for(i = 0; (curr = entrygeti(from, i)) != NULL; i++){
+		if((res = entrycontains(to, curr->name)) < 0 || curr->type == NAVFILE){
+			if(entryaddto(to, curr)<0){
+				fprintf(stderr, "err: navmerge(): couldn't add child to parent\n");
+				return -1;
+			}
+		}else
+			if(navmerge(curr, entrygeti(to, res)) < 0)
+				return -1;
+	}
 	return 0;
 }
 
