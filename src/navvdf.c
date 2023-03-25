@@ -9,7 +9,7 @@
 struct Tree{
 	char *buf;
 	Pool pool;
-	Entry2 *root;
+	Entry *root;
 };
 
 enum NAVRES{
@@ -18,13 +18,13 @@ enum NAVRES{
 	NAVEOD = 3
 };
 
-static int fnextentry(char **, Entry2 *);
+static int fnextentry(char **, Entry *);
 static int genentries(Tree *);
-static int entryinit(Entry2 *, Entry2 *);
-static int entryaddto(Entry2 *, Entry2 *);
+static int entryinit(Entry *, Entry *);
+static int entryaddto(Entry *, Entry *);
 static int mergeprefabs(Tree *);
-static int navmerge(Entry2 *, Entry2 *);
-static int mergeduplicates(Entry2 *);
+static int navmerge(Entry *, Entry *);
+static int mergeduplicates(Entry *);
 
 
 Tree *
@@ -33,21 +33,21 @@ navgentree(char *buf, unsigned int alloc)
 	Tree *t = calloc(1, sizeof(Tree));
 	t->buf = buf;
 
-	pool_init(&t->pool, alloc, sizeof(Entry2));
+	pool_init(&t->pool, alloc, sizeof(Entry));
 	genentries(t);
 	mergeprefabs(t);
 	return t;
 }
 
 void
-pos_init(Pos2 *p, Tree *t)
+pos_init(Pos *p, Tree *t)
 {
 	p->i = 0;
 	p->p[p->i] = t->root;
 }
 
 int
-navto2(Pos2 *pos, const char *path)
+navto2(Pos *pos, const char *path)
 {
 	char tmp[NAVBUFSIZE] = {0};
 	char *name, *ptr = tmp;
@@ -78,7 +78,7 @@ navto2(Pos2 *pos, const char *path)
 }
 
 int
-navtoi(Pos2 *pos, int i)
+navtoi(Pos *pos, int i)
 {
 	if(i < 0 || i >= pos->p[pos->i]->childc)
 		return -1;
@@ -91,7 +91,7 @@ navtoi(Pos2 *pos, int i)
 }
 
 int
-navopen2(const Entry2 *e, const char *name, Entry2 **to)
+navopen2(const Entry *e, const char *name, Entry **to)
 {
 	int i;
 
@@ -111,7 +111,7 @@ static int
 genentries(Tree *t)
 {
 	int res = 0, handle = 0;
-	Entry2 *parent, *child;
+	Entry *parent, *child;
 	char *p = t->buf;
 	Pool *pool = &t->pool;
 
@@ -155,11 +155,11 @@ static int
 mergeprefabs(Tree *t)
 {
 	int i, handle;
-	Entry2 *curr, *preffile;
+	Entry *curr, *preffile;
 	char tmp[NAVBUFSIZE] = {0}, *ptr;
 	char path[NAVBUFSIZE] = "/items_game/prefabs/";
 	char *prefab;
-	Pos2 pos;
+	Pos pos;
 
 	pos_init(&pos, t);
 
@@ -191,8 +191,8 @@ mergeprefabs(Tree *t)
 	return 0;
 }
 
-Entry2 *
-entrygeti(const Entry2 *e, int i)
+Entry *
+entrygeti(const Entry *e, int i)
 {
 	if(i < 0 || i >= e->childc)
 		return NULL;
@@ -200,7 +200,7 @@ entrygeti(const Entry2 *e, int i)
 }
 
 int
-entrycontains(const Entry2 *e, const char *name)
+entrycontains(const Entry *e, const char *name)
 {
 	int i;
 	for(i = 0; i < e->childc; i++)
@@ -210,7 +210,7 @@ entrycontains(const Entry2 *e, const char *name)
 }
 
 static int
-mergeduplicates(Entry2 *e)
+mergeduplicates(Entry *e)
 {
 	/*Yes, this doesn't actually merge entries together, but rather makes it so
 	 *that all duplicate entries have the same content. And yes, this results in
@@ -240,10 +240,10 @@ mergeduplicates(Entry2 *e)
 }
 
 static int
-navmerge(Entry2 *from, Entry2 *to)
+navmerge(Entry *from, Entry *to)
 {
 	int i, res;
-	Entry2 *curr;
+	Entry *curr;
 
 	/*Files that have the same name as other entries are simply added in the list.
 	 *Since they are added after the original content, they won't be returned by
@@ -271,7 +271,7 @@ navmerge(Entry2 *from, Entry2 *to)
 }
 
 static int
-entryinit(Entry2 *parent, Entry2 *e)
+entryinit(Entry *parent, Entry *e)
 {
 	e->parent = parent;
 	e->childc = 0;
@@ -280,17 +280,17 @@ entryinit(Entry2 *parent, Entry2 *e)
 	e->val = NULL;
 	e->childs = NULL;
 	e->type = NAVFILE;
-	if((e->childs = malloc(sizeof(Entry2*) * e->childm)) == NULL)
+	if((e->childs = malloc(sizeof(Entry*) * e->childm)) == NULL)
 		return -1;
 	return 0;
 }
 
 static int
-entryaddto(Entry2 *parent, Entry2 *child)
+entryaddto(Entry *parent, Entry *child)
 {
 	if(parent->childc >= parent->childm){
 		parent->childm += 5;
-		if((parent->childs = realloc(parent->childs, parent->childm * sizeof(Entry2**))) == NULL)
+		if((parent->childs = realloc(parent->childs, parent->childm * sizeof(Entry**))) == NULL)
 			return -1;
 	}
 	parent->childs[parent->childc++] = child;
@@ -298,7 +298,7 @@ entryaddto(Entry2 *parent, Entry2 *child)
 }
 
 static int
-fnextentry(char **p, Entry2 *e)
+fnextentry(char **p, Entry *e)
 {
 	/*TODO: this should not rely on double quotes to be present*/
 
@@ -344,7 +344,7 @@ fnextentry(char **p, Entry2 *e)
 
 		if((*p)[0] == '{'){
 			/*NAVDIR*/
-			/*get over the opening brace to set the link and call navjump()*/
+			/*get over the opening brace for future calls*/
 			(*p)++;
 			e->type = NAVDIR;
 			return NAVDIR;

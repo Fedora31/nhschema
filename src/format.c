@@ -50,7 +50,7 @@ static const Bodyinfo bodyinfo[] = {
 
 unsigned int
 formatpaths
-(const Entry2 *e, unsigned int classb, char paths[CLASSCOUNT][NAVBUFSIZE])
+(const Entry *e, unsigned int classb, char paths[CLASSCOUNT][NAVBUFSIZE])
 {
 	int i;
 	unsigned int res = 0;

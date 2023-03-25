@@ -17,9 +17,5 @@ enum CLASSES{
 	CLASSCOUNT
 };
 
-typedef struct Classdata{
-	int id[CLASSCOUNT];
-}Classdata;
-
 int parse(char *);
-unsigned int getclasses(const Entry2 *);
+unsigned int getclasses(const Entry *);

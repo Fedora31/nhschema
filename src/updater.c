@@ -20,19 +20,19 @@ typedef struct Mdl{
 }Mdl;
 
 static void output(const Mdl *);
-static unsigned int getpaths(const Entry2 *, Mdl *);
-static unsigned int getbodys(const Pos2 *);
+static unsigned int getpaths(const Entry *, Mdl *);
+static unsigned int getbodys(const Pos *);
 static int setbitc(unsigned int);
 
 
 int
-updater_print(const Pos2 *pos)
+updater_print(const Pos *pos)
 {
 	Mdl m = {0};
-	Entry2 *e;
-	Entry2 *hat = pos->p[pos->i];
+	Entry *e;
+	Entry *hat = pos->p[pos->i];
 	int i;
-	Pos2 lpos = *pos;
+	Pos lpos = *pos;
 
 	strncpy(m.suffix, hat->name, NAVBUFSIZE-1);
 
@@ -65,7 +65,7 @@ updater_print(const Pos2 *pos)
 	e = lpos.p[lpos.i];
 
 	for(i = 0; i < e->childc; i++){
-		Entry2 *child;
+		Entry *child;
 
 		m.new |= getpaths(e->childs[i], &m);
 
@@ -88,11 +88,11 @@ updater_print(const Pos2 *pos)
 }
 
 static unsigned int
-getbodys(const Pos2 *pos)
+getbodys(const Pos *pos)
 {
-	Entry2 *e;
+	Entry *e;
 	unsigned int mask = 0;
-	Pos2 lpos = *pos;
+	Pos lpos = *pos;
 	int i;
 
 	/*This gets the bodygroup of all the styles at once too, since some
@@ -114,7 +114,7 @@ getbodys(const Pos2 *pos)
 	}
 
 	if(navto2(&lpos, "visuals/styles") == 0){
-		Entry2 *child;
+		Entry *child;
 		e = lpos.p[lpos.i];
 		for(i = 0; i < e->childc; i++)
 			if(navopen2(e->childs[i], "additional_hidden_bodygroups", &child) == 0){
@@ -131,9 +131,9 @@ getbodys(const Pos2 *pos)
  *Improvements are needed.
  */
 static unsigned int
-getpaths(const Entry2 *p, Mdl *m)
+getpaths(const Entry *p, Mdl *m)
 {
-	Entry2 *e;
+	Entry *e;
 	unsigned int mask = 0;
 	int i;
 

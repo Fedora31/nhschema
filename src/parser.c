@@ -8,7 +8,7 @@
 #include "parser.h"
 #include "format.h"
 
-static int ishat(const Pos2 *);
+static int ishat(const Pos *);
 
 
 int
@@ -16,7 +16,7 @@ parse(char *start)
 {
 	Tree *t;
 	int i;
-	Pos2 pos;
+	Pos pos;
 
 	if((t = navgentree(start, 2048)) == NULL){
 		fprintf(stderr, "fatal: couldn't create tree\n");
@@ -40,9 +40,9 @@ parse(char *start)
  *documentation.
  */
 unsigned int
-getclasses(const Entry2 *hat)
+getclasses(const Entry *hat)
 {
-	Entry2 *e;
+	Entry *e;
 	int i;
 	unsigned int mask = 0;
 
@@ -56,9 +56,9 @@ getclasses(const Entry2 *hat)
 }
 
 static int
-ishat(const Pos2 *p)
+ishat(const Pos *p)
 {
-	Pos2 lp = *p;
+	Pos lp = *p;
 	if(navto2(&lp, "item_slot")<0)
 		return 0;
 	if(strcmp(lp.p[lp.i]->val, "head") == 0 || strcmp(lp.p[lp.i]->val, "misc") == 0)

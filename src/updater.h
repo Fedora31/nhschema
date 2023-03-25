@@ -1,5 +1,5 @@
 /*
- * requires: navvdf2.h
+ * requires: navvdf.h
  */
 
-int updater_print(const Pos2 *);
+int updater_print(const Pos *);
