@@ -21,8 +21,8 @@ static const Classinfo classinfo[] = {
 	{0x1,     "Scout",    "scout",    "scout",    SCOUT,    B_HAT | B_HEADPHONES | B_DOGTAGS | B_SHOES},
 	{0x2,     "Soldier",  "soldier",  "soldier",  SOLDIER,  B_HAT | B_GRENADES},
 	{0x4,     "Pyro",     "pyro",     "pyro",     PYRO,     B_BACKPACK | B_HEAD | B_GRENADES},
-	{0x8,     "Demo",     "demo",     "demoman",  DEMO,     B_SHOES},
-	{0x8,     "Demo",     "demo",     "Demoman",  DEMO,     B_SHOES}, /*see "Dr's Dapper Topper"*/
+	{0x8,     "Demo",     "demo",     "demoman",  DEMO,     B_SHOES | B_GRENADES},
+	{0x8,     "Demo",     "demo",     "Demoman",  DEMO,     B_SHOES | B_GRENADES}, /*see "Dr's Dapper Topper"*/
 	{0x10,    "Engineer", "engineer", "engineer", ENGINEER, B_HAT},
 	{0x20,    "Heavy",    "heavy",    "heavy",    HEAVY,    B_HANDS},
 	{0x40,    "Medic",    "medic",    "medic",    MEDIC,    B_BACKPACK},
