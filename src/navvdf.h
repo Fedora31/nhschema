@@ -33,7 +33,6 @@ Tree * navgentree(char *, unsigned int);
 void pos_init(Pos2 *, Tree *);
 int navto2(Pos2 *, const char *);
 int navtoi(Pos2 *, int);
-Entry2 * navwd(Tree *);
 int entrycontains(const Entry2 *, const char *);
 Entry2 * entrygeti(const Entry2 *, int);
 int navopen2(const Entry2 *, const char *, Entry2 **);

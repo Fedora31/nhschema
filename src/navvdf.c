@@ -9,9 +9,7 @@
 struct Tree{
 	char *buf;
 	Pool pool;
-	Entry2 *path[TREEDEPTH];
 	Entry2 *root;
-	unsigned int i;
 };
 
 enum NAVRES{
@@ -34,7 +32,6 @@ navgentree(char *buf, unsigned int alloc)
 {
 	Tree *t = calloc(1, sizeof(Tree));
 	t->buf = buf;
-	t->i = 0;
 
 	pool_init(&t->pool, alloc, sizeof(Entry2));
 	genentries(t);
@@ -93,12 +90,6 @@ navtoi(Pos2 *pos, int i)
 	return 0;
 }
 
-Entry2 *
-navwd(Tree *t)
-{
-	return t->path[t->i];
-}
-
 int
 navopen2(const Entry2 *e, const char *name, Entry2 **to)
 {
@@ -124,9 +115,9 @@ genentries(Tree *t)
 	char *p = t->buf;
 	Pool *pool = &t->pool;
 
-	t->root = t->path[0] = parent = pool_getslot(pool, &handle);
-	entryinit(NULL, t->path[0]);
-	t->path[0]->type = NAVDIR; /*we won't be able to cd otherwise*/
+	t->root = parent = pool_getslot(pool, &handle);
+	entryinit(NULL, t->root);
+	t->root->type = NAVDIR; /*we won't be able to cd otherwise*/
 
 	pool_set(pool, handle++);
 	child = pool_getslot(pool, &handle);
