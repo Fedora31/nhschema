@@ -1,4 +1,8 @@
+/*
+ *requires: navvdf.h
+ */
 
+#define TREEDEPTH 128
 #define NAVBUFSIZE 512
 
 enum NAVTYPE{
@@ -6,27 +10,30 @@ enum NAVTYPE{
 	NAVFILE
 };
 
-typedef struct Entry{
+typedef struct Tree Tree;
+
+typedef struct Entry2{
+	struct Entry2 *parent;
+	struct Entry2 **childs;
+	int childc;
+	int childm;
+
+	char *name;
+	char *val;
 	enum NAVTYPE type;
-	char name[NAVBUFSIZE];
-	char val[NAVBUFSIZE];
-	char *link;
-	char *start;
-}Entry;
+}Entry2;
 
-typedef struct Pos{
-	char *start;
-	char *p;
-}Pos;
+typedef struct Pos2{
+	Entry2 *p[TREEDEPTH];
+	int i; /*pos->p[pos->i] is the current directory*/
+}Pos2;
 
-int navto(Pos *, const char *);
-int navopen(Pos *, const char *);
-int navnext(Pos *);
-int navgetwd(const Pos *, Entry *);
-int navreturn(Pos *);
-int naventry(const Entry *, const char *, Entry *);
-int navopene(const Entry *, const char *, Entry *);
-int navbreak(Entry *);
 
-int navnextentry(char **, Entry *);
-int navjump(char **);
+Tree * navgentree(char *, unsigned int);
+void pos_init(Pos2 *, Tree *);
+int navto2(Pos2 *, const char *);
+int navtoi(Pos2 *, int);
+Entry2 * navwd(Tree *);
+int entrycontains(const Entry2 *, const char *);
+Entry2 * entrygeti(const Entry2 *, int);
+int navopen2(const Entry2 *, const char *, Entry2 **);

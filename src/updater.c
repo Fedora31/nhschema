@@ -3,7 +3,6 @@
 
 #include "str.h"
 #include "navvdf.h"
-#include "navvdf2.h"
 #include "updater.h"
 #include "parser.h"
 #include "format.h"
@@ -32,7 +31,6 @@ updater_print(const Pos2 *pos)
 	Mdl m = {0};
 	Entry2 *e;
 	Entry2 *hat = pos->p[pos->i];
-	char *lp;
 	int i;
 	Pos2 lpos = *pos;
 
@@ -93,9 +91,6 @@ static unsigned int
 getbodys(const Pos2 *pos)
 {
 	Entry2 *e;
-	char *lp;
-	char *lp2;
-	char *prefab;
 	unsigned int mask = 0;
 	Pos2 lpos = *pos;
 	int i;
@@ -139,8 +134,6 @@ static unsigned int
 getpaths(const Entry2 *p, Mdl *m)
 {
 	Entry2 *e;
-	Entry2 *child;
-	char *lp;
 	unsigned int mask = 0;
 	int i;
 

@@ -4,7 +4,6 @@
 
 #include "str.h"
 #include "navvdf.h"
-#include "navvdf2.h"
 #include "parser.h"
 #include "format.h"
 
