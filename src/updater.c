@@ -148,6 +148,12 @@ getpaths(const Entry *p, Mdl *m)
 		return mask;
 	}
 
+	/*They forgot to add the parent entry for the "Festive Fascinator", so this handles that*/
+	if(navopen2(p, "basename", &e) == 0){
+		mask |= formatpaths(e, m->classb, m->paths);
+		return mask;
+	}
+
 	/*Should copy the path in the right slot.
 	 *This assumes that entries with a "model_player" entry are
 	 *for one class only, hence it simply returns classb as the mask.
