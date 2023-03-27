@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "str.h"
 #include "navvdf.h"
@@ -22,6 +23,9 @@ typedef struct Mdl{
 static void output(const Mdl *);
 static unsigned int getpaths(const Entry *, Mdl *);
 static unsigned int getbodys(const Pos *);
+static unsigned int getaddbodys(const Entry *);
+static int printstyles(const Entry *, const Mdl *);
+static void unsetlessr(Mdl *, Mdl *);
 static int setbitc(unsigned int);
 
 
@@ -31,14 +35,11 @@ updater_print(const Pos *pos)
 	Mdl m = {0};
 	Entry *e;
 	Entry *hat = pos->p[pos->i];
-	int i;
 	Pos lpos = *pos;
 
 	strncpy(m.suffix, hat->name, NAVBUFSIZE-1);
 
-	/*if the hat doesn't possess bodygroup entries, create a vtx instead*/
-	if(!(m.bodyb |= getbodys(pos)))
-		m.vtx = 1;
+	m.bodyb |= getbodys(pos);
 
 	if(navopen2(hat, "item_name", &e) == 0)
 		strncpy(m.qc, e->val, NAVBUFSIZE-1);
@@ -62,29 +63,86 @@ updater_print(const Pos *pos)
 		output(&m);
 		return 0;
 	}
-	e = lpos.p[lpos.i];
 
-	for(i = 0; i < e->childc; i++){
+	e = lpos.p[lpos.i];
+	return printstyles(e, &m);
+}
+
+static int
+printstyles(const Entry *styledir, const Mdl *defmdl)
+{
+	int i, j, count = styledir->childc;
+
+	Mdl *styles = malloc(count * sizeof(Mdl));
+	for(i = 0; i < count; i++)
+		styles[i] = *defmdl;
+
+	for(i = 0; i < count; i++){
 		Entry *child;
 
-		m.new |= getpaths(e->childs[i], &m);
+		styles[i].new |= getpaths(styledir->childs[i], &styles[i]);
+		styles[i].bodyb |= getaddbodys(styledir->childs[i]);
 
-		if(m.solemodel && setbitc(m.classb) > 1){
-			m.force1vtx = 1;
-			m.vtx = 1;
+		if(styles[i].solemodel && setbitc(styles[i].classb) > 1){
+			styles[i].force1vtx = 1;
+			styles[i].vtx = 1;
 		}
 
-		if(navopen2(e->childs[i], "name", &child) == 0)
-			strncpy(m.qc, child->val, NAVBUFSIZE-1);
+		if(navopen2(styledir->childs[i], "name", &child) == 0)
+			strncpy(styles[i].qc, child->val, NAVBUFSIZE-1);
 		else
-			sprintf(m.qc, "#NONAME_STYLE%d", i); /*damn you c89*/
-
-		output(&m);
-
-		m.new = 0; /*do not move*/
+			sprintf(styles[i].qc, "#NONAME_STYLE%d", i); /*damn you c89*/
 	}
 
+	/*For each Mdl, remove duplicated paths and keep the versions which have
+	 *the most bodygroups.
+	 */
+	for(i = 0; i < count; i++){
+		for(j = 0; j < count; j++){
+			if(i == j)
+				continue;
+			unsetlessr(&styles[i], &styles[j]);
+		}
+	}
+
+	for(i = 0; i < count; i++)
+		output(&styles[i]);
+
+	free(styles);
 	return 0;
+}
+
+/*This function checks all the paths in m1 and m2 for
+ *duplicates and UNSETS the "new" bit of the found path
+ *that possesses the less restrictions (that doesn't
+ *remove the most bodygroups).
+ *
+ *This is needed because the same path cannot be printed
+ *twice with different bodygroups. So, the ones which
+ *possesses the most is kept, the inverse would
+ *leave some characters with missing bodygroups.
+ */
+static void
+unsetlessr(Mdl *m1, Mdl *m2)
+{
+	int i, j;
+
+	for(i = 0; i < CLASSCOUNT; i++){
+		/*don't check unset paths*/
+		if(!(m1->new >> i & 1U))
+			continue;
+		for(j = 0; j < CLASSCOUNT; j++){
+			if(!(m2->new >> j & 1U))
+				continue;
+
+			if(strcmp(m1->paths[i], m2->paths[j]) == 0){
+				if(setbitc(m2->bodyb) > setbitc(m1->bodyb))
+					m1->new &= ~(1U << i);
+				else
+					m2->new &= ~(1U << j);
+			}
+		}
+	}
 }
 
 static unsigned int
@@ -95,16 +153,6 @@ getbodys(const Pos *pos)
 	Pos lpos = *pos;
 	int i;
 
-	/*This gets the bodygroup of all the styles at once too, since some
-	 *styles only toggle a bodygroup on without providing a new model, so
-	 *there's no possibility to create an entry for each style.
-	 */
-
-	/*This also brings the problem that the code can't toggle a bodygroup
-	 *on and off, even if the style does use a different model. Improvements
-	 *can be done here, but I think the code is complex enough as it is.
-	 */
-
 	if(navto2(&lpos, "visuals/player_bodygroups") == 0){
 		e = lpos.p[lpos.i];
 		for(i = 0; i < e->childc; i++)
@@ -112,17 +160,20 @@ getbodys(const Pos *pos)
 				mask |= getbody_n(e->childs[i]->name)->mask;
 		lpos = *pos;
 	}
+	return mask;
+}
 
-	if(navto2(&lpos, "visuals/styles") == 0){
-		Entry *child;
-		e = lpos.p[lpos.i];
+static unsigned int
+getaddbodys(const Entry *style)
+{
+	Entry *e;
+	unsigned int mask = 0;
+	int i;
+
+	if(navopen2(style, "additional_hidden_bodygroups", &e) == 0)
 		for(i = 0; i < e->childc; i++)
-			if(navopen2(e->childs[i], "additional_hidden_bodygroups", &child) == 0){
-				int j;
-				for(j = 0; j < child->childc; j++)
-					mask |= getbody_n(child->childs[j]->name)->mask;
-			}
-		}
+			mask |= getbody_n(e->childs[i]->name)->mask;
+
 	return mask;
 }
 
