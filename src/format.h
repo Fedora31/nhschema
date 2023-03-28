@@ -17,7 +17,7 @@ typedef struct Bodyinfo{
 	char *sname;
 }Bodyinfo;
 
-unsigned int formatpaths(const Entry *, unsigned int, char [CLASSCOUNT][NAVBUFSIZE]);
+unsigned int formatpaths(const Entry *, unsigned int, char [][NAVBUFSIZE]);
 
 const Classinfo * getclass_b(unsigned int);
 const Classinfo * getclass_i(unsigned int);

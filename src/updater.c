@@ -8,9 +8,11 @@
 #include "parser.h"
 #include "format.h"
 
+#define MAXPATHS CLASSCOUNT * 2
+
 typedef struct Mdl{
 	char qc[NAVBUFSIZE];
-	char paths[CLASSCOUNT][NAVBUFSIZE];
+	char paths[MAXPATHS][NAVBUFSIZE];
 	char suffix[NAVBUFSIZE];
 	unsigned int classb;
 	unsigned int bodyb;
@@ -127,11 +129,11 @@ unsetlessr(Mdl *m1, Mdl *m2)
 {
 	int i, j;
 
-	for(i = 0; i < CLASSCOUNT; i++){
+	for(i = 0; i < MAXPATHS; i++){
 		/*don't check unset paths*/
 		if(!(m1->new >> i & 1U))
 			continue;
-		for(j = 0; j < CLASSCOUNT; j++){
+		for(j = 0; j < MAXPATHS; j++){
 			if(!(m2->new >> j & 1U))
 				continue;
 
@@ -205,6 +207,22 @@ getpaths(const Entry *p, Mdl *m)
 		return mask;
 	}
 
+	/*This block of code is only used by the "Grandmaster", since it's the only hat
+	 *using those obscure entries. The existing code has been retrofitted to be compatible
+	 *with this one hat, in a rather crude way I'm afraid.
+	 */
+	if(navopen2(p, "model_player_per_class_red", &e) == 0){
+		for(i = 0; i < e->childc; i++)
+			mask |= formatpaths(e->childs[i], m->classb, m->paths);
+		if(navopen2(p, "model_player_per_class_blue", &e) < 0)
+			return mask;
+
+		/*does the Geneva convention allow this*/
+		for(i = 0; i < e->childc; i++)
+			mask |= (formatpaths(e->childs[i], m->classb, &m->paths[CLASSCOUNT]) << CLASSCOUNT);
+		return mask;
+	}
+
 	/*Should copy the path in the right slot.
 	 *This assumes that entries with a "model_player" entry are
 	 *for one class only, hence it simply returns classb as the mask.
@@ -220,7 +238,7 @@ getpaths(const Entry *p, Mdl *m)
 static void
 output(const Mdl *m)
 {
-	int i;
+	int i, li;
 	unsigned int remainder;
 	unsigned int new = m->new;
 
@@ -234,19 +252,24 @@ output(const Mdl *m)
 		return;
 	}
 
-	for(i = 0; i < CLASSCOUNT; i++){
-		/*Only print classes that:
-		 *1. are used by the hat (classb)
-		 *2. have recently changed (new)
+	for(i = 0, li = 0; i < MAXPATHS; i++, li++){
+
+		/*li should "wrap around" when it finished incrementing through the classes' ids.
+		 *Needed for the "Grandmaster".
 		 */
-		if((m->classb & new) >> i & 1){
+		if(li >= CLASSCOUNT)
+			li = 0;
+
+		/*Only print paths that have recently changed (new)*/
+		if(new >> i & 1){
 			/*check if the bodyparts are relevant to the current class*/
-			remainder = m->bodyb & getclass_i(i)->bodymask;
+			remainder = m->bodyb & getclass_i(li)->bodymask;
 			if(!remainder){
 				printf("%s vtx\n", m->paths[i]);
 				continue;
 			}
-			printf("%s %s_%s.qc %s animation ", m->paths[i], m->qc, m->suffix, getclass_i(i)->fname);
+			/*i is printed to have different names for the Grandmaster's red and blue paths*/
+			printf("%s %s-%s-%d.qc %s animation ", m->paths[i], m->qc, m->suffix, i, getclass_i(li)->fname);
 			printbody_b(remainder);
 			printf("\n");
 		}

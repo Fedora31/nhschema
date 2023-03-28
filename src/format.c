@@ -48,10 +48,11 @@ static const Bodyinfo bodyinfo[] = {
 	{ERRMASK,      "Error",      "Error"}
 };
 
-
+/*there must be at least 9 rows
+ *help: I am a wanted criminal on the run
+ */
 unsigned int
-formatpaths
-(const Entry *e, unsigned int classb, char paths[CLASSCOUNT][NAVBUFSIZE])
+formatpaths(const Entry *e, unsigned int classb, char paths[][NAVBUFSIZE])
 {
 	int i;
 	unsigned int res = 0;
