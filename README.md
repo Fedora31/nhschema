@@ -27,13 +27,16 @@ program.
 Some cosmetic items do not possess common entry names (e.g.
 "The Grandmaster"). Their paths are thus not handled correctly.
 
-For hats that use the same model between styles (e.g. "Honest Halo"),
+For hats that use the same model between styles (e.g. "Dead of Night"),
 bodygroups will reappear for all those styles, wether or not they were
 disabled to begin with (resulting in overlapping hats, which is in
 most circumstances not noticeable unless you modify the mod with
 [nhcustom2](https://github.com/Fedora31/nhcustom2)). This isn't
 really an issue with this program but with how no-hats-bgum works,
 which can't toggle bodygroups on and off with the same model.
+
+Hats that use the same model between classes (e.g. "Honest Halo")
+aren't supported and are treated as hats that simply need a vtx file.
 
 A lot of entries (mostly medals) use the same model, this results
 in the program outputting a lot of duplicated lines. To speed up
