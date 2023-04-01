@@ -83,6 +83,56 @@ getequips(const Entry *hat)
 	return mask;
 }
 
+/*Put in an array the entries containing paths. It
+ *returns the number of paths found.*/
+int
+getpaths2(const Entry *p, Entry **paths, int memb)
+{
+	int i = 0, j;
+	Entry *e;
+
+
+	/*"model_player_per_class" takes precedence over "model_player".
+	 *"Team Captain" and the "Prinny Pouch" include (and I wonder why)
+	 *both entries, and the paths in "model_player" are either wrong or
+	 *incomplete.
+	 */
+	if(navopen2(p, "model_player_per_class", &e) == 0){
+		for(j = 0; i < memb && j < e->childc; i++, j++)
+			paths[i] = e->childs[j];
+		return i;
+	}
+
+	/*They forgot to add the parent entry for the "Festive Fascinator",
+	 *so this handles that
+	 */
+	if(navopen2(p, "basename", &e) == 0){
+		if(i < memb){
+			paths[i++] = e;
+			return i;
+		}
+		return i;
+	}
+
+	/*This block of code is only used by the "Grandmaster", since it's the only hat
+	 *using those obscure entries.
+	 */
+	if(navopen2(p, "model_player_per_class_red", &e) == 0){
+		for(j = 0; i < memb && j < e->childc; i++, j++)
+			paths[i] = e->childs[j];
+		if(navopen2(p, "model_player_per_class_blue", &e) < 0)
+			return i;
+		for(j = 0; i < memb && j < e->childc; i++, j++)
+			paths[i] = e->childs[j];
+		return i;
+	}
+
+	if(navopen2(p, "model_player", &e) == 0)
+		if(i < memb)
+			paths[i++] = e;
+	return i;
+}
+
 static int
 ishat(const Pos *p)
 {

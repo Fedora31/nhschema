@@ -1,29 +1,35 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "str.h"
 #include "arg.h"
 #include "navvdf.h"
 #include "parser.h"
 #include "format.h"
 #include "custom.h"
 
-#define MAXPATHS CLASSCOUNT * 2
+#define MAXPATHS 128
 
 typedef struct Mdl{
 	char name[NAVBUFSIZE];
 	char paths[MAXPATHS][NAVBUFSIZE];
+	int pathc;
 	unsigned int pmask;
 	unsigned int cmask;
 	unsigned long long int qmask;
 }Mdl;
 
+static void getallpaths(const Entry *, Mdl *);
+static void pathsformat(const Entry *, Mdl *);
 static void output(const Mdl *);
+static int pathexists(const Mdl *, const char *);
 
 
 void
 custom_printheader(void)
 {
 	char sep = arg_getsep();
+	fprintf(stderr, "warn: nhcustom2's database generation feature is incomplete! Check the output data!\n");
 	printf("hat%cclass%cequip%cdate%cupdate%cpath\n", sep, sep, sep, sep, sep);
 }
 
@@ -41,8 +47,71 @@ custom_print(const Pos *p)
 	m.cmask = getclasses(hat);
 	m.qmask = getequips(hat);
 
+	getallpaths(hat, &m);
+
 	output(&m);
 
+	return 0;
+}
+
+static void
+getallpaths(const Entry *hat, Mdl *m)
+{
+	int i;
+	Entry *e;
+
+	/*If the hat possesses styles, only get the paths in them, we don't
+	 *care about paths outside of styles (since they're duplicates)
+	 */
+	if(navopen2(hat, "visuals", &e) == 0 && navopen2(e, "styles", &e) == 0){
+		for(i = 0; i < e->childc; i++)
+			pathsformat(e->childs[i], m);
+	}else
+		pathsformat(hat, m);
+}
+
+static void
+pathsformat(const Entry *path, Mdl *m)
+{
+	Entry *paths[MAXPATHS] = {0};
+	char fpaths[CLASSCOUNT][NAVBUFSIZE] = {0};
+	int i, pc;
+
+	pc = getpaths2(path, paths, MAXPATHS);
+
+	/*If only one path was found, chances are it's a basename path. And
+	 *since it's alone, there's no need to generate all the paths for all the
+	 *classes since nhcustom2 does this already, but only for paths that apply
+	 *to all the classes.
+	 */
+	if(pc == 1){
+		if(!pathexists(m, paths[0]->val)){
+			strncpy(m->paths[m->pathc], paths[0]->val, NAVBUFSIZE-1);
+			strswapall(m->paths[m->pathc++], "%s", "[CLASS]", NAVBUFSIZE-1);
+		}
+		return;
+	}
+
+	for(i = 0; i < MAXPATHS && paths[i]; i++)
+		formatpaths(paths[i], m->cmask, fpaths);
+
+	for(i = 0; i < CLASSCOUNT; i++){
+		if(!(m->cmask >> i & 1))
+			continue;
+		if(!pathexists(m, fpaths[i]))
+			strncpy(m->paths[m->pathc++], fpaths[i], NAVBUFSIZE-1);
+	}
+
+}
+
+static int
+pathexists(const Mdl *m, const char *p)
+{
+	int i;
+	for(i = 0; i < m->pathc; i++){
+		if(strcmp(m->paths[i], p) == 0)
+			return 1;
+	}
 	return 0;
 }
 
@@ -90,7 +159,11 @@ output(const Mdl *m)
 
 	printf("%c", sep);
 
-	/*paths are not yet implemented*/
+	for(i = 0; i < MAXPATHS && strlen(m->paths[i]) > 0; i++){
+		if(i)
+			printf("|");
+		printf("%s", m->paths[i]);
+	}
 
 	printf("\n");
 

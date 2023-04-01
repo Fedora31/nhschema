@@ -20,3 +20,4 @@ enum CLASSES{
 int parse(char *);
 unsigned int getclasses(const Entry *);
 unsigned long long int getequips(const Entry *);
+int getpaths2(const Entry *, Entry **, int);
