@@ -12,10 +12,16 @@ typedef struct Classinfo{
 }Classinfo;
 
 typedef struct Bodyinfo{
-	unsigned int mask;
+	unsigned long long int mask;
 	char *name;
 	char *sname;
 }Bodyinfo;
+
+typedef struct Equipinfo{
+	unsigned long long int mask;
+	char *name;
+	char *sname;
+}Equipinfo;
 
 unsigned int formatpaths(const Entry *, unsigned int, char [][NAVBUFSIZE]);
 
@@ -25,3 +31,8 @@ const Classinfo * getclass_n(const char *);
 const Bodyinfo * getbody_n(const char *);
 const Bodyinfo * getbody_b(unsigned int);
 void printbody_b(unsigned int);
+const Equipinfo * getequip_n(const char *);
+const Equipinfo * getequip_b(unsigned long long int);
+int getequipcount(void);
+
+int setbitc(unsigned int);

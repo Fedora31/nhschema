@@ -2,9 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "arg.h"
 #include "str.h"
 #include "navvdf.h"
 #include "updater.h"
+#include "custom.h"
 #include "parser.h"
 #include "format.h"
 
@@ -25,6 +27,15 @@ parse(char *start)
 
 	pos_init(&pos, t);
 	navto2(&pos, "/items_game/items");
+
+	if(arg_getcmode()){
+		custom_printheader();
+		for(i = 0; navtoi(&pos, i++) >= 0; navto2(&pos, ".."))
+			if(ishat(&pos))
+				if(custom_print(&pos) < 0)
+					fprintf(stderr, "err: couldn't parse hat \"%s\"\n", pos.p[pos.i]->name);
+		return 0;
+	}
 
 	for(i = 0; navtoi(&pos, i++) >= 0; navto2(&pos, ".."))
 		if(ishat(&pos))
@@ -53,6 +64,23 @@ getclasses(const Entry *hat)
 			mask |= getclass_n(e->childs[i]->name)->mask;
 
 	return i != 0 ? mask : ~(mask & 0);
+}
+
+unsigned long long int
+getequips(const Entry *hat)
+{
+	Entry *e;
+	int i;
+	unsigned long long int mask = 0;
+
+	if(navopen2(hat, "equip_region", &e) == 0)
+		mask |= getequip_n(e->val)->mask;
+
+	if(navopen2(hat, "equip_regions", &e) == 0)
+		for(i = 0; i < e->childc; i++)
+			mask |= getequip_n(e->childs[i]->name)->mask;
+
+	return mask;
 }
 
 static int

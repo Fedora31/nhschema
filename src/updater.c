@@ -28,7 +28,6 @@ static unsigned int getbodys(const Pos *);
 static unsigned int getaddbodys(const Entry *);
 static int printstyles(const Entry *, const Mdl *);
 static void unsetlessr(Mdl *, Mdl *);
-static int setbitc(unsigned int);
 
 
 int
@@ -274,15 +273,4 @@ output(const Mdl *m)
 			printf("\n");
 		}
 	}
-}
-
-static int
-setbitc(unsigned int b)
-{
-	/*not fast, but idc*/
-	int res = 0;
-	for(; b; b >>= 1)
-		if(b & 1)
-			res++;
-	return res;
 }
