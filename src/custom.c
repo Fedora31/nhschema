@@ -8,12 +8,16 @@
 #include "format.h"
 #include "custom.h"
 
+/*FIXME: if there's too many paths, the program can crash since it doesn't check to
+ *see if it went beyond this value
+ */
 #define MAXPATHS 128
 
 typedef struct Mdl{
 	char name[NAVBUFSIZE];
 	char paths[MAXPATHS][NAVBUFSIZE];
 	int pathc;
+	char date[NAVBUFSIZE];
 	unsigned int pmask;
 	unsigned int cmask;
 	unsigned long long int qmask;
@@ -23,7 +27,9 @@ static void getallpaths(const Entry *, Mdl *);
 static void pathsformat(const Entry *, Mdl *);
 static void output(const Mdl *);
 static int pathexists(const Mdl *, const char *);
-
+static int getdate(const Pos *, Mdl *);
+static int isincollection(Entry *, const char *);
+static Entry *searchcollectiondate(const Pos *, const Entry *);
 
 void
 custom_printheader(void)
@@ -48,6 +54,7 @@ custom_print(const Pos *p)
 	m.qmask = getequips(hat);
 
 	getallpaths(hat, &m);
+	getdate(p, &m);
 
 	output(&m);
 
@@ -79,6 +86,9 @@ pathsformat(const Entry *path, Mdl *m)
 
 	pc = getpaths2(path, paths, MAXPATHS);
 
+	if(!pc)
+		return;
+
 	/*If only one path was found, chances are it's a basename path. And
 	 *since it's alone, there's no need to generate all the paths for all the
 	 *classes since nhcustom2 does this already, but only for paths that apply
@@ -87,7 +97,9 @@ pathsformat(const Entry *path, Mdl *m)
 	if(pc == 1){
 		if(!pathexists(m, paths[0]->val)){
 			strncpy(m->paths[m->pathc], paths[0]->val, NAVBUFSIZE-1);
-			strswapall(m->paths[m->pathc++], "%s", "[CLASS]", NAVBUFSIZE-1);
+			strswapall(m->paths[m->pathc], "%s", "[CLASS]", NAVBUFSIZE-1);
+			strswap(m->paths[m->pathc], ".mdl", ".*", NAVBUFSIZE-1);
+			m->pathc++;
 		}
 		return;
 	}
@@ -98,8 +110,11 @@ pathsformat(const Entry *path, Mdl *m)
 	for(i = 0; i < CLASSCOUNT; i++){
 		if(!(m->cmask >> i & 1))
 			continue;
-		if(!pathexists(m, fpaths[i]))
-			strncpy(m->paths[m->pathc++], fpaths[i], NAVBUFSIZE-1);
+		if(!pathexists(m, fpaths[i])){
+			strncpy(m->paths[m->pathc], fpaths[i], NAVBUFSIZE-1);
+			strswap(m->paths[m->pathc], ".mdl", ".*", NAVBUFSIZE-1);
+			m->pathc++;
+		}
 	}
 
 }
@@ -111,6 +126,97 @@ pathexists(const Mdl *m, const char *p)
 	for(i = 0; i < m->pathc; i++){
 		if(strcmp(m->paths[i], p) == 0)
 			return 1;
+	}
+	return 0;
+}
+
+static int
+getdate(const Pos *p, Mdl *m)
+{
+	Pos lp = *p;
+	Entry *e, *date, *hat = p->p[p->i];
+	int i;
+
+	/*First, check if a first_sale_date entry is in the current hat*/
+
+	if(navopen2(hat, "first_sale_date", &e) == 0){
+		strncpy(m->date, e->val, NAVBUFSIZE-1);
+		strswapall(m->date, "/", "-", NAVBUFSIZE-1);
+		return 0;
+	}
+
+	strncpy(m->date, "2001-01-01", NAVBUFSIZE-1);
+
+	/*Try to find if the hat is included in a collection, which possesses a date entry*/
+
+	if(navto2(&lp, "/items_game/item_collections") < 0)
+		return -1;
+
+	e = lp.p[lp.i];
+	for(i = 0; i < e->childc; i++){
+		if(!isincollection(e->childs[i], m->name))
+			continue;
+		if(!(date = searchcollectiondate(p, e->childs[i])))
+			break;
+
+		strncpy(m->date, date->val, NAVBUFSIZE-1);
+		strswapall(m->date, "/", "-", NAVBUFSIZE-1);
+
+		break;
+	}
+
+	return 0;
+}
+
+static Entry *
+searchcollectiondate(const Pos *p, const Entry *coll)
+{
+	int i;
+	Pos lp = *p;
+	Entry *item, *e;
+
+	if(navto2(&lp, "/items_game/items") < 0)
+		return NULL;
+
+	item = lp.p[lp.i];
+
+
+	/*if the current item possesses the collection reference and a
+	 *first_sale_date entry, then we're good
+	 */
+
+	for(i = 0; i < item->childc; i++){
+		if(navopen2(item->childs[i], "collection_reference", &e)<0)
+			continue;
+		if(strcmp(e->val, coll->name) != 0)
+			continue;
+		if(navopen2(item->childs[i], "first_sale_date", &e) == 0)
+			return e;
+	}
+	return NULL;
+}
+
+
+/*Search for a given name in the given collection entry.*/
+static int
+isincollection(Entry *coll, const char *name)
+{
+	int i, j;
+	Entry *items, *child;
+
+	if(navopen2(coll, "items", &items) < 0)
+		return 0;
+
+	/*Collections have rarity subentries.*/
+
+	for(i = 0; i < items->childc; i++){
+		if(items->childs[i]->type == NAVFILE)
+			continue;
+		child = items->childs[i];
+		for(j = 0; j < child->childc; j++){
+			if(strcmp(child->childs[j]->name, name) == 0)
+				return 1;
+		}
 	}
 	return 0;
 }
@@ -140,7 +246,7 @@ output(const Mdl *m)
 		printf("None");
 	else
 		/*-1 bc it's undefined behaviour to shift with a value >= to the
-		 *number of bits of the shifter var
+		 *number of bits of the shifted var
 		 */
 		for(i = sizeof(unsigned long long int)*8-1, li = 0; i >= 0; i--)
 			if(m->qmask >> i & 1){
@@ -151,19 +257,23 @@ output(const Mdl *m)
 			}
 	printf("%c", sep);
 
-	/*dates are not yet implemented*/
+	printf("%s", m->date);
 
 	printf("%c", sep);
 
-	/*updates are not yet implemented*/
+	printf("None");
 
 	printf("%c", sep);
 
-	for(i = 0; i < MAXPATHS && strlen(m->paths[i]) > 0; i++){
-		if(i)
-			printf("|");
-		printf("%s", m->paths[i]);
-	}
+	if(m->pathc <= 0)
+		printf("None");
+	else
+		for(i = 0; i < m->pathc; i++){
+			if(i)
+				printf("|");
+			printf("%s", m->paths[i]);
+		}
+
 
 	printf("\n");
 
