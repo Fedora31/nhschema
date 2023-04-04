@@ -25,6 +25,7 @@ static int entryaddto(Entry *, Entry *);
 static int mergeprefabs(Tree *);
 static int navmerge(Entry *, Entry *);
 static int mergeduplicates(Entry *);
+static int getfield(char **);
 
 
 Tree *
@@ -35,6 +36,8 @@ navgentree(char *buf, unsigned int alloc)
 
 	pool_init(&t->pool, alloc, sizeof(Entry));
 	genentries(t);
+
+	/*TODO: this function should be outside and callable by the user if they need it.*/
 	mergeprefabs(t);
 	return t;
 }
@@ -96,10 +99,13 @@ navopen2(const Entry *e, const char *name, Entry **to)
 	int i;
 
 	/*you can't cd to a file*/
+	if(!e)
+		return -1;
 	if(e->type == NAVFILE)
 		return NAVISFILE;
 	for(i = 0; i < e->childc; i++){
 		if(strcmp(e->childs[i]->name, name) == 0){
+			/*printf("found %s\n", e->childs[i]->name);*/
 			*to = e->childs[i];
 			return 0;
 		}
@@ -298,18 +304,157 @@ entryaddto(Entry *parent, Entry *child)
 }
 
 static int
+getfield(char **p)
+{
+	int i, stop = 0;
+	int quoted = 0;
+
+	if((*p)[0] == '"'){
+		quoted = 1;
+		(*p)++;
+	}
+
+	for(i = 0; (*p)[i] != '\0'; i++){
+
+		if(!quoted && ((*p)[i] == ' ' || (*p)[i] == '\t'))
+			break;
+
+		switch((*p)[i]){
+		case '\\':
+			i++;
+			continue;
+
+		case '"':
+		case '\n':
+		case '\r':
+		case '\t':
+			stop = 1;
+			break;
+		}
+		if(stop)
+			break;
+	}
+	return (*p)[i] == '\0' ? -1 : i;
+}
+
+static int
 fnextentry(char **p, Entry *e)
 {
+	/*TODO: this code doesn't check for comments between names and values.*/
+
+	int i = 0;
+
+	/*get to the next entry, going over any comments*/
+	while(1){
+		for(;
+		(*p)[i] == '\n' ||
+		(*p)[i] == '\r' ||
+		(*p)[i] == '\t' ||
+		(*p)[i] == ' ';
+		i++);
+
+		if(
+		(*p)[i]   == '/' &&
+		(*p)[i+1] == '/'){
+
+			for(;
+			(*p)[i] != '\n' &&
+			(*p)[i] != '\0';
+			i++);
+
+			if((*p)[i] == '\0'){
+				/*printf("null outside\n");*/
+				return -1;
+			}
+
+			continue;
+		}
+		break;
+	}
+	(*p)+=i;
+
+	/*printf("1 p[0]=%c\n", (*p)[0]);*/
+
+	if((*p)[0] == '}'){
+		(*p)++; /*jump over*/
+		/*printf("naveod\n");*/
+		return NAVEOD;
+	}
+
+	if((i = getfield(p)) == -1){
+		/*printf("null 1\n");*/
+		return -1;
+	}
+
+	e->name = *p;
+	(*p)[i] = '\0';
+	(*p)+=i+1;
+
+	/*printf("(%d) name: %s\n", i, e->name);*/
+
+	for(i = 0;
+	(*p)[i] == '\n' ||
+	(*p)[i] == '\r' ||
+	(*p)[i] == '\t' ||
+	(*p)[i] == ' ';
+	i++);
+
+	/*printf("2 p[%d]=%c\n", i, (*p)[i]);*/
+
+	if((*p)[i] == '{'){
+		(*p)+=i+1;
+		/*printf("navdir\n");*/
+		e->type = NAVDIR;
+		return NAVDIR;
+	}
+	(*p)+=i;
+
+	if((i = getfield(p)) == -1){
+		/*printf("null 2\n");*/
+		return -1;
+	}
+
+	e->val = *p;
+	e->type = NAVFILE;
+	(*p)[i] = '\0';
+	(*p)+=i+1;
+
+	/*printf("(%d) val: %s\n", i, e->val);*/
+
+
+	/*printf("navfile\n");*/
+	return NAVFILE;
+
+
+
+#if 0
 	/*TODO: this should not rely on double quotes to be present*/
+	/*FIXME: PLEASE, MAKE THIS BETTER, IT IS THE REASON OF YOUR CRASHES*/
 
 	char *name, *val;
-	int dq = 0, new = 1;
+	int dq = 0, new = 1, comment = 0, esc = 0;
 
 	/*4 consecutive double quotes means the entry is a NAVFILE.
 	 *encountering an opening brace means the entry is a NAVDIR.
 	 */
 
 	for(; (*p)[0] != '}' && (*p)[0] != '\0'; (*p)++){
+
+		if((*p)[0] == '\n')
+			esc = 0;
+
+		if(esc)
+			continue;
+
+		/*tf_english CONTAINS SOME \" !!!*/
+
+		if((*p)[0] == '/')
+			comment++;
+		else
+			comment = 0;
+
+		if(comment >= 2)
+			esc = 1;
 
 		if((*p)[0] == '"'){
 			dq++;
@@ -358,4 +503,6 @@ fnextentry(char **p, Entry *e)
 	/*'\0'*/
 	(*p)--;
 	return -1;
+
+#endif
 }
