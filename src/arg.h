@@ -7,3 +7,4 @@ extern int norun;
 int arg_process(int, char **);
 char arg_getsep(void);
 int arg_getcmode(void);
+const char *arg_getlangpath(void);

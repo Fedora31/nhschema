@@ -1,14 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "str.h"
 #include "arg.h"
 
 static char sep = ';';
 
 /*should print nhcustom's database*/
 static int cmode = 0;
+static char langpath[ARG_ARGLEN] = {0};
 
 static int incrstep(int *, int, int);
+static void formatpath(char *, char *);
 
 
 int
@@ -33,6 +36,13 @@ arg_process(int argc, char **argv)
 					if(sscanf(argv[i+step], "%c", &sep) != 1)
 						return -1;
 					break;
+
+				case 'l':
+					if(incrstep(&step, i, argc)<0)
+						return -1;
+					formatpath(langpath, argv[i+step]);
+					break;
+
 
 				default:
 					fprintf(stderr, "err: option not recognized: %c\n", argv[i][e]);
@@ -64,8 +74,24 @@ incrstep(int *step, int pos, int argc)
 	return 0;
 }
 
+static void
+formatpath(char *res, char *arg)
+{
+	int len = strlen(arg);
+	strncpy(res, arg, ARG_ARGLEN-1);
+	strswapall(res, "\\", "/", ARG_ARGLEN-1);
+	if(res[len-1] == '/')
+		res[len-1] = '\0';
+}
+
 int
 arg_getcmode(void)
 {
 	return cmode;
+}
+
+const char *
+arg_getlangpath(void)
+{
+	return langpath;
 }

@@ -4,6 +4,7 @@
 
 #include "arg.h"
 #include "str.h"
+#include "lang.h"
 #include "navvdf.h"
 #include "updater.h"
 #include "custom.h"
@@ -29,11 +30,16 @@ parse(char *start)
 	navto2(&pos, "/items_game/items");
 
 	if(arg_getcmode()){
+		if(lang_init()<0){
+			fprintf(stderr, "err: couldn't load langage\n");
+			return -1;
+		}
 		custom_printheader();
 		for(i = 0; navtoi(&pos, i++) >= 0; navto2(&pos, ".."))
 			if(ishat(&pos))
 				if(custom_print(&pos) < 0)
 					fprintf(stderr, "err: couldn't parse hat \"%s\"\n", pos.p[pos.i]->name);
+		lang_free();
 		return 0;
 	}
 
