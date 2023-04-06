@@ -54,6 +54,13 @@ in the program outputting a lot of duplicated lines. To speed up
 nhupdater2, you may want to pipe the output of this program through
 `sort -u`.
 
+Updates are not listed in the item schema, the program will write
+`None` in the update field when generating the database.
+
+Hats frequently have a release date in the item schema that is a couple
+of days off with the day where they actually were released, so one
+should always verify the dates to see if they are accurate.
+
 
 ## Usage
 
