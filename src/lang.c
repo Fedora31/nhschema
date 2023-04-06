@@ -23,14 +23,6 @@ lang_init(void)
 	if(loadf(f, &txt)<0)
 		return -1;
 
-	/*For some reason, TF2's language files begin with a header
-	 *of 6 bytes, starting with the char 0xEF (U+FFFD) "replacement
-	 *character". This crudely checks for that and replaces the
-	 *header with spaces if it's the case.*/
-
-	if((unsigned char)txt[0] == 0xEF)
-		memset(txt, ' ', 6);
-
 	lang = navgentree(txt, 2048);
 	if(!lang){
 		free(txt);
@@ -43,6 +35,15 @@ lang_init(void)
 	}
 
 	return 0;
+}
+
+const char *lang_get(const char *key)
+{
+	Entry *e = p.p[p.i];
+
+	if(navopen2(e, key, &e) == 0)
+		return e->val;
+	return key;
 }
 
 void

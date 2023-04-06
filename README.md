@@ -6,7 +6,8 @@ See: [no-hats-bgum](https://github.com/Fedora31/no-hats-bgum),
 
 nhschema is a program capable to read (most of) the cosmetic
 items from TF2's client item schema and outputing them in a format
-readable by [nhupdater2](https://github.com/Fedora31/nhupdater2).
+readable by [nhupdater2](https://github.com/Fedora31/nhupdater2) or
+by [nhcustom2](https://github.com/Fedora31/nhcustom2).
 It was created to allow the generation of new versions of
 [no-hats-bgum](https://github.com/Fedora31/no-hats-bgum) much
 more quickly, as reading the item schema allows to more
@@ -16,7 +17,22 @@ The parser hasn't been thoroughly tested against all possible
 edge cases that may exist in the item schema. Nevertheless, it
 should work well with recent cosmetics.
 
+Using the `-c` option makes the program output a database usable
+by nhcustom2. One must also use the `-l` option when in this mode,
+followed by the path to a language file (containing translations),
+which can be found at `tf/resource/`. For example, `tf_english.txt`.
+
+> If no translation is found for an item name, the printed string will
+> be the default english name.
+
+
 ## Limitations
+
+All files **must** be encoded in UTF-8 with no BOM. Be careful as
+most (if not all) of the language files are encoded in UTF-16 with
+BOM. One must convert them before using them.
+
+> It can be done in Vim with `set fenc=utf8` and `set nobomb`.
 
 The passed schema must be the one used by Team Fortress 2, as
 some entry names and their location are hard-coded into the
@@ -38,9 +54,12 @@ in the program outputting a lot of duplicated lines. To speed up
 nhupdater2, you may want to pipe the output of this program through
 `sort -u`.
 
+
 ## Usage
 
-`./nhschema <items_game.txt`
+`./nhschema [-c -l LANGFILE] <items_game.txt`
 
-`items_game.txt` is the item schema which can be found at
-`tf/scripts/items/items_game.txt`.
+- `items_game.txt` is the item schema which can be found at
+  `tf/scripts/items/`.
+- `LANGFILE` is a language file which can be found at
+  `tf/resource/`.

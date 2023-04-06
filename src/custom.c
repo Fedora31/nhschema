@@ -5,6 +5,7 @@
 #include "str.h"
 #include "arg.h"
 #include "navvdf.h"
+#include "lang.h"
 #include "parser.h"
 #include "format.h"
 #include "custom.h"
@@ -16,6 +17,7 @@
 
 typedef struct Mdl{
 	char name[NAVBUFSIZE];
+	char sname[NAVBUFSIZE];
 	char paths[MAXPATHS][NAVBUFSIZE];
 	int pathc;
 	char date[NAVBUFSIZE];
@@ -47,11 +49,26 @@ custom_print(const Pos *p)
 {
 	Mdl m = {0};
 	Entry *e, *hat = p->p[p->i];
+	const char *tlname;
 
+
+	/*the name in the "name" entry is needed to look hats up in collections*/
 	if(navopen2(hat, "name", &e) == 0)
-		strncpy(m.name, e->val, NAVBUFSIZE-1);
+		strncpy(m.sname, e->val, NAVBUFSIZE-1);
 	else
-		snprintf(m.name, NAVBUFSIZE-1, "NONAME");
+		strncpy(m.sname, "ERR_NONAME", NAVBUFSIZE-1);
+
+	/*Write the translated name if a translation is found.
+	 *Write the value in the entry "name" if no translation is found.
+	 *Write NONAME if both entries "item_name" and "name" weren't found.
+	 */
+	if(navopen2(hat, "item_name", &e) == 0){
+		if((tlname = lang_get(&e->val[1])) != &e->val[1])
+			strncpy(m.name, tlname, NAVBUFSIZE-1);
+		else if(navopen2(hat, "name", &e) == 0)
+			strncpy(m.name, e->val, NAVBUFSIZE-1);
+	}else
+		strncpy(m.name, "ERR_NONAME", NAVBUFSIZE-1);
 
 	m.cmask = getclasses(hat);
 	m.qmask = getequips(hat);
@@ -165,7 +182,7 @@ getdate(const Pos *p, Mdl *m)
 
 	e = lp.p[lp.i];
 	for(i = 0; i < e->childc; i++){
-		if(!isincollection(e->childs[i], m->name))
+		if(!isincollection(e->childs[i], m->sname))
 			continue;
 		if(!(date = searchcollectiondate(p, e->childs[i])))
 			break;
