@@ -2,6 +2,8 @@
  * requires: navvdf.h, parser.h
  */
 
+#define ERRMASK 0x200
+
 typedef struct Classinfo{
 	unsigned int mask;
 	char *name;    /*default name*/

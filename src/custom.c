@@ -255,6 +255,9 @@ output(const Mdl *m)
 	int i, li;
 	char sep = arg_getsep();
 
+	if(m->qmask & ERRMASK)
+		fprintf(stderr, "warn: unknown equip region for entry \"%s\"\n", m->sname);
+
 	printf("%s%c", m->name, sep);
 
 	if(setbitc(m->cmask) >= CLASSCOUNT)

@@ -16,7 +16,6 @@
 #define B_SHOES          0x40
 #define B_HANDS          0x80
 #define B_MEDIC_BACKPACK 0x100
-#define ERRMASK 0x0
 
 static const Classinfo classinfo[] = {
 	{0x1,     "Scout",    "scout",    "scout",    SCOUT,    B_HAT | B_HEADPHONES | B_DOGTAGS | B_SHOES},
@@ -45,7 +44,7 @@ static const Bodyinfo bodyinfo[] = {
 	{B_SHOES,          "shoes",      "shoes_socks"},
 	{B_HANDS,          "hands",      "hands"},
 
-	{ERRMASK,      "Error",      "Error"}
+	{ERRMASK,      "ERROR",      "ERROR"}
 };
 
 /*the mask cannot be more than 64 bits!*/
@@ -62,7 +61,7 @@ static const Equipinfo equipinfo[] = {
 	{0x40, "Ears",       "ears"},
 	{0x80, "Face",       "face"},
 	{0x100, "Moustache and Eyepatch", "demo_eyepatch"},
-	{0x200, "Glasses",    "glasses"},
+	/*0x200 is used by ERRMASK*/
 	{0x400, "Lenses",     "lenses"},
 	{0x800, "Pipe",       "medic_pipe"},
 	{0x1000, "Cigar",      "soldier_cigar"},
@@ -119,8 +118,9 @@ static const Equipinfo equipinfo[] = {
 	{0x400000000000, "Feet",       "feet"},
 	{0x800000000000, "Disconnected Floating Item", "disconnected_floating_item"},
 	{0x1000000000000, "Zombie Body", "zombie_body"},
+	{0x2000000000000, "Glasses",    "glasses"},
 
-	{ERRMASK, "Error", "Error"}
+	{ERRMASK, "ERROR", "ERROR"}
 };
 
 /*there must be at least 9 rows

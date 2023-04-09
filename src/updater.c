@@ -241,6 +241,9 @@ output(const Mdl *m)
 	unsigned int remainder;
 	unsigned int new = m->new;
 
+	if(m->bodyb & ERRMASK)
+		fprintf(stderr, "warn: unknown bodygroup for entry \"%s\"\n", m->qc);
+
 	/*this force to only print the first new path*/
 	if(m->force1vtx)
 		new = getclass_b(new)->mask;
