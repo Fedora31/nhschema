@@ -327,7 +327,6 @@ getfield(char **p)
 		case '"':
 		case '\n':
 		case '\r':
-		case '\t':
 			stop = 1;
 			break;
 		}
