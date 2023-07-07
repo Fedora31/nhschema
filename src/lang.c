@@ -2,52 +2,48 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <navvdf.h>
 #include "arg.h"
 #include "file.h"
-#include "navvdf.h"
 #include "lang.h"
 
 
-static Tree *lang;
-static Pos p = {0};
+static Vdftree l;
+static Vdfpos o;
 
 
 int
 lang_init(void)
 {
-	char *txt;
 	FILE *f = fopen(arg_getlangpath(), "rb");
 	if(!f)
 		return -1;
 
-	if(loadf(f, &txt)<0)
-		return -1;
-
-	lang = navgentree(txt, 2048);
-	if(!lang){
-		free(txt);
+	if(vdf_loadf(&l, f, '\r', VDF_ESCSEQ) < 0){
+		fclose(f);
 		return -1;
 	}
-	pos_init(&p, lang);
-	if(navto2(&p, "/lang/Tokens")<0){
-		/*TODO: free the tree*/
+	fclose(f);
+
+	vdf_posinit(&o, &l);
+
+	if(vdf_nav(&o, "\rlang\rTokens", &o) < 0){
+		vdf_free(&l);
 		return -1;
 	}
-
 	return 0;
 }
 
 const char *lang_get(const char *key)
 {
-	Entry *e = p.p[p.i];
-
-	if(navopen2(e, key, &e) == 0)
-		return e->val;
-	return key;
+	const char *val;
+	if(!(val = vdf_valptr(&o, key)))
+		return key;
+	return val;
 }
 
 void
 lang_free(void)
 {
-	/*TODO*/
+	vdf_free(&l);
 }
