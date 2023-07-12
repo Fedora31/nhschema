@@ -79,8 +79,14 @@ getequips(const Entry *hat)
 	int i;
 	unsigned long long int mask = 0;
 
-	if(navopen2(hat, "equip_region", &e) == 0)
-		mask |= getequip_n(e->val)->mask;
+	/*"equip_region" can be either a file or a folder*/
+	if(navopen2(hat, "equip_region", &e) == 0){
+		if(e->type == NAVDIR)
+			for(i = 0; i < e->childc; i++)
+				mask |= getequip_n(e->childs[i]->name)->mask;
+		else
+			mask |= getequip_n(e->val)->mask;
+	}
 
 	if(navopen2(hat, "equip_regions", &e) == 0)
 		for(i = 0; i < e->childc; i++)
