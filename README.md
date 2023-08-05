@@ -32,8 +32,7 @@ All files **must** be encoded in UTF-8 with no BOM. Be careful as
 most (if not all) of the language files are encoded in UTF-16 with
 BOM. One must convert them before using them.
 
-> It can be done in Vim with `set fenc=utf8` and `set nobomb` or with
-> iconv: `iconv -f utf-16 -t utf-8 oldfile >newfile`
+> It can be done in Vim with `set fenc=utf8` and `set nobomb`.
 
 The passed schema must be the one used by Team Fortress 2, as
 some entry names and their location are hard-coded into the
