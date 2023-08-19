@@ -1,3 +1,5 @@
+## This project has moved to <https://pevhs.ch/tf2/nhschema>. This repository will not be updated again.
+
 # nhschema
 
 See: [no-hats-bgum](https://github.com/Fedora31/no-hats-bgum),
